@@ -424,6 +424,10 @@
         <span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 17V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10" stroke="#fff" stroke-width="2"/><rect x="7" y="11" width="6" height="4" rx="1" fill="#fff" fill-opacity="0.7"/></svg></span>
         <b style="font-size:1.08em;letter-spacing:0.5px;">Sales (POS)</b>
       </button>
+      <button id="tab-sales-history" onclick="switchTab('sales-history')">
+        <span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="3" y="7" width="14" height="8" rx="2" fill="#fff" fill-opacity="0.2"/><rect x="6" y="10" width="8" height="3" rx="1.5" fill="#fff" fill-opacity="0.7"/></svg></span>
+        Sales History
+      </button>
       <button id="tab-staff" onclick="switchTab('staff')">
         <span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3" fill="#fff" fill-opacity="0.7"/><rect x="4" y="12" width="12" height="5" rx="2.5" fill="#fff" fill-opacity="0.2"/></svg></span>
         Staff
@@ -531,6 +535,7 @@
     let saleLoading = false;
     let showInvoice = false;
     let lastInvoice = null;
+    let salesHistory = [];
 
     function switchTab(tab) {
       currentTab = tab;
@@ -538,6 +543,10 @@
       document.querySelectorAll('.pos-sidebar button').forEach(btn => btn.classList.remove('active'));
       document.getElementById('tab-' + tab).classList.add('active');
       if (window.innerWidth <= 900) sidebar.classList.remove('open');
+      if (tab === 'sales-history') {
+        renderSalesHistoryTab();
+        return;
+      }
       renderCRUD();
     }
 
@@ -604,107 +613,109 @@
 
     function renderSaleUI() {
       preloadSaleData().then(() => {
-        let productOptions = productsList.map(p => `<option value="${p.id}" data-price="${p.price}">${p.productname}</option>`).join('');
-        let customerOptions = customersList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        let staffOptions = staffList.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        let cartRows = cart.map((item, i) => `
-          <tr>
-            <td>${productsList.find(p=>p.id==item.product_id)?.productname||''}</td>
-            <td><input type="number" min="1" value="${item.quantity}" style="width:60px" onchange="editCartQty(${i}, this.value)"></td>
-            <td>${item.price}</td>
-            <td>${item.subtotal}</td>
-            <td><button class="pos-btn cancel" style="padding:4px 10px;font-size:0.95em" onclick="removeCartItem(${i})">Remove</button></td>
-          </tr>
-        `).join('');
-        let subtotal = cart.reduce((sum, item) => sum + Number(item.subtotal), 0);
-        let discount = Number(saleForm.discount)||0;
-        let discountAmount = discount > 0 ? (discount < 1 ? subtotal * discount : discount) : 0;
-        let grandTotal = subtotal - discountAmount;
-        let payment = Number(saleForm.payment)||0;
-        let change = payment - grandTotal;
-        document.getElementById('crud-app').innerHTML = `
-          <h2>Sales (POS)</h2>
-          <form id="sale-form" onsubmit="event.preventDefault(); addToCart()">
-            <div class="pos-form-row">
-              <label>Product
-                <select name="product_id" required onchange="onSaleProductChange(this.value)">
-                  <option value="">-- Select Product --</option>
-                  ${productOptions}
-                </select>
-              </label>
-              <label>Quantity
-                <input name="quantity" type="number" min="1" value="${saleForm.quantity}" required onchange="onSaleQtyChange(this.value)">
-              </label>
-              <label>Price
-                <input name="price" type="number" min="0" step="0.01" value="${saleForm.price}" required onchange="onSalePriceChange(this.value)">
-              </label>
-              <label>Subtotal
-                <input name="subtotal" type="number" value="${saleForm.quantity * saleForm.price}" readonly>
-              </label>
+        fetchSalesHistory().then(() => {
+          let productOptions = productsList.map(p => `<option value="${p.id}" data-price="${p.price}">${p.productname}</option>`).join('');
+          let customerOptions = customersList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+          let staffOptions = staffList.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+          let cartRows = cart.map((item, i) => `
+            <tr>
+              <td>${productsList.find(p=>p.id==item.product_id)?.productname||''}</td>
+              <td><input type="number" min="1" value="${item.quantity}" style="width:60px" onchange="editCartQty(${i}, this.value)"></td>
+              <td>${item.price}</td>
+              <td>${item.subtotal}</td>
+              <td><button class="pos-btn cancel" style="padding:4px 10px;font-size:0.95em" onclick="removeCartItem(${i})">Remove</button></td>
+            </tr>
+          `).join('');
+          let subtotal = cart.reduce((sum, item) => sum + Number(item.subtotal), 0);
+          let discount = Number(saleForm.discount)||0;
+          let discountAmount = discount > 0 ? (discount < 1 ? subtotal * discount : discount) : 0;
+          let grandTotal = subtotal - discountAmount;
+          let payment = Number(saleForm.payment)||0;
+          let change = payment - grandTotal;
+          document.getElementById('crud-app').innerHTML = `
+            <h2>Sales (POS)</h2>
+            <form id="sale-form" onsubmit="event.preventDefault(); addToCart()">
+              <div class="pos-form-row">
+                <label>Product
+                  <select name="product_id" required onchange="onSaleProductChange(this.value)">
+                    <option value="">-- Select Product --</option>
+                    ${productOptions}
+                  </select>
+                </label>
+                <label>Quantity
+                  <input name="quantity" type="number" min="1" value="${saleForm.quantity}" required onchange="onSaleQtyChange(this.value)">
+                </label>
+                <label>Price
+                  <input name="price" type="number" min="0" step="0.01" value="${saleForm.price}" required onchange="onSalePriceChange(this.value)">
+                </label>
+                <label>Subtotal
+                  <input name="subtotal" type="number" value="${saleForm.quantity * saleForm.price}" readonly>
+                </label>
+              </div>
+              <div class="pos-form-actions">
+                <button type="submit" class="pos-btn"><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><path d="M10 5v10m5-5H5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg> Add to Cart</button>
+              </div>
+            </form>
+            <div class="pos-card" style="margin-bottom:18px;">
+              <h3 style="margin:0 0 10px 0;font-size:1.1em;">Cart</h3>
+              <div class="pos-table-wrap">
+                <table><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th><th></th></tr></thead>
+                <tbody>${cartRows || '<tr><td colspan="5" style="text-align:center;color:#aaa;">No items</td></tr>'}</tbody></table>
+              </div>
+              <div style="text-align:right;font-size:1.1em;margin-top:10px;">Subtotal: <b>${subtotal.toFixed(2)}</b></div>
             </div>
-            <div class="pos-form-actions">
-              <button type="submit" class="pos-btn"><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><path d="M10 5v10m5-5H5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg> Add to Cart</button>
-            </div>
-          </form>
-          <div class="pos-card" style="margin-bottom:18px;">
-            <h3 style="margin:0 0 10px 0;font-size:1.1em;">Cart</h3>
-            <div class="pos-table-wrap">
-              <table><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th><th></th></tr></thead>
-              <tbody>${cartRows || '<tr><td colspan="5" style="text-align:center;color:#aaa;">No items</td></tr>'}</tbody></table>
-            </div>
-            <div style="text-align:right;font-size:1.1em;margin-top:10px;">Subtotal: <b>${subtotal.toFixed(2)}</b></div>
-          </div>
-          <form id="checkout-form" onsubmit="event.preventDefault(); checkoutSale()">
-            <div class="pos-form-row">
-              <label>Customer
-                <select name="customer_id" required>
-                  <option value="">-- Select Customer --</option>
-                  ${customerOptions}
-                </select>
-              </label>
-              <label>Staff
-                <select name="staff_id" required>
-                  <option value="">-- Select Staff --</option>
-                  ${staffOptions}
-                </select>
-              </label>
-              <label>Discount
-                <input name="discount" type="number" min="0" step="0.01" value="${saleForm.discount}" placeholder="0"> <span style="font-size:0.95em;color:#888;">(amount or 0.05 for 5%)</span>
-              </label>
-              <label>Payment
-                <input name="payment" type="number" min="0" step="0.01" value="${saleForm.payment}" placeholder="0">
-              </label>
-              <label>Note
-                <input name="note" type="text">
-              </label>
-            </div>
-            <div style="text-align:right;font-size:1.1em;margin-bottom:8px;">
-              Discount: <b>${discountAmount.toFixed(2)}</b> &nbsp; Grand Total: <b>${grandTotal.toFixed(2)}</b> &nbsp; Change: <b style="color:${change<0?'#e74c3c':'#22c55e'}">${change.toFixed(2)}</b>
-            </div>
-            <div class="pos-form-actions">
-              <button type="submit" class="pos-btn" ${cart.length===0||saleLoading?'disabled':''}><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="2" rx="1" fill="#fff"/></svg> Checkout</button>
-              ${saleLoading?'<span class="pos-btn" style="background:#eee;color:#888;cursor:wait;"><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke="#2563eb" stroke-width="3" stroke-dasharray="20 20" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 10 10" to="360 10 10" dur="0.7s" repeatCount="indefinite"/></circle></svg> Processing...</span>':''}
-            </div>
-            <div class="error" style="text-align:center;">${saleMessage}</div>
-          </form>
-          ${showInvoice && lastInvoice ? renderInvoiceModal(lastInvoice) : ''}
-        `;
-        // Restore form values
-        const form = document.getElementById('sale-form');
-        if (form) {
-          form.product_id.value = saleForm.product_id;
-          form.quantity.value = saleForm.quantity;
-          form.price.value = saleForm.price;
-          form.subtotal.value = saleForm.quantity * saleForm.price;
-        }
-        const checkoutForm = document.getElementById('checkout-form');
-        if (checkoutForm) {
-          checkoutForm.customer_id.value = saleForm.customer_id;
-          checkoutForm.staff_id.value = saleForm.staff_id;
-          checkoutForm.note.value = saleForm.note;
-          checkoutForm.discount.value = saleForm.discount;
-          checkoutForm.payment.value = saleForm.payment;
-        }
+            <form id="checkout-form" onsubmit="event.preventDefault(); checkoutSale()">
+              <div class="pos-form-row">
+                <label>Customer
+                  <select name="customer_id" required>
+                    <option value="">-- Select Customer --</option>
+                    ${customerOptions}
+                  </select>
+                </label>
+                <label>Staff
+                  <select name="staff_id" required>
+                    <option value="">-- Select Staff --</option>
+                    ${staffOptions}
+                  </select>
+                </label>
+                <label>Discount
+                  <input name="discount" type="number" min="0" step="0.01" value="${saleForm.discount}" placeholder="0"> <span style="font-size:0.95em;color:#888;">(amount or 0.05 for 5%)</span>
+                </label>
+                <label>Payment
+                  <input name="payment" type="number" min="0" step="0.01" value="${saleForm.payment}" placeholder="0">
+                </label>
+                <label>Note
+                  <input name="note" type="text">
+                </label>
+              </div>
+              <div style="text-align:right;font-size:1.1em;margin-bottom:8px;">
+                Discount: <b>${discountAmount.toFixed(2)}</b> &nbsp; Grand Total: <b>${grandTotal.toFixed(2)}</b> &nbsp; Change: <b style="color:${change<0?'#e74c3c':'#22c55e'}">${change.toFixed(2)}</b>
+              </div>
+              <div class="pos-form-actions">
+                <button type="submit" class="pos-btn" ${cart.length===0||saleLoading?'disabled':''}><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="2" rx="1" fill="#fff"/></svg> Checkout</button>
+                ${saleLoading?'<span class="pos-btn" style="background:#eee;color:#888;cursor:wait;"><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke="#2563eb" stroke-width="3" stroke-dasharray="20 20" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 10 10" to="360 10 10" dur="0.7s" repeatCount="indefinite"/></circle></svg> Processing...</span>':''}
+              </div>
+              <div class="error" style="text-align:center;">${saleMessage}</div>
+            </form>
+            ${showInvoice && lastInvoice ? renderInvoiceModal(lastInvoice) : ''}
+          `;
+          // Restore form values
+          const form = document.getElementById('sale-form');
+          if (form) {
+            form.product_id.value = saleForm.product_id;
+            form.quantity.value = saleForm.quantity;
+            form.price.value = saleForm.price;
+            form.subtotal.value = saleForm.quantity * saleForm.price;
+          }
+          const checkoutForm = document.getElementById('checkout-form');
+          if (checkoutForm) {
+            checkoutForm.customer_id.value = saleForm.customer_id;
+            checkoutForm.staff_id.value = saleForm.staff_id;
+            checkoutForm.note.value = saleForm.note;
+            checkoutForm.discount.value = saleForm.discount;
+            checkoutForm.payment.value = saleForm.payment;
+          }
+        });
       });
     }
 
@@ -867,7 +878,14 @@
       const price = Number(form.price.value)||0;
       if (!product_id || quantity<=0) return;
       const subtotal = quantity * price;
-      cart.push({ product_id, quantity, price, subtotal });
+      // If product already in cart, increase qty/subtotal
+      const existing = cart.find(item => item.product_id === product_id);
+      if (existing) {
+        existing.quantity += quantity;
+        existing.subtotal = existing.quantity * existing.price;
+      } else {
+        cart.push({ product_id, quantity, price, subtotal });
+      }
       saleForm.product_id = '';
       saleForm.quantity = 1;
       saleForm.price = 0;
@@ -880,6 +898,40 @@
       cart.splice(idx,1);
       renderSaleUI();
     }
+    function fetchSalesHistory() {
+      return fetch(tables.sales.endpoint)
+        .then(res => res.json())
+        .then(data => { salesHistory = data; });
+    }
+
+    function showSaleInvoice(saleId) {
+      const sale = salesHistory.find(s => s.id == saleId);
+      if (!sale) return;
+      // Compose invoice data from sale
+      lastInvoice = {
+        id: sale.id,
+        date: sale.sale_date,
+        customer: customersList.find(c=>c.id==sale.customer_id)?.name||'',
+        staff: staffList.find(s=>s.id==sale.staff_id)?.name||'',
+        items: (sale.items||[]).map(item=>(
+          {
+            name: item.productname||'',
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.subtotal
+          }
+        )),
+        subtotal: sale.items ? sale.items.reduce((sum, i)=>sum+Number(i.subtotal),0) : Number(sale.total),
+        discount: 0, // Not stored in DB, so show 0
+        total: Number(sale.total),
+        payment: sale.payment !== undefined ? Number(sale.payment) : Number(sale.total),
+        change: sale.payment !== undefined ? Number(sale.payment) - Number(sale.total) : 0,
+        note: sale.note
+      };
+      showInvoice = true;
+      renderSaleUI();
+    }
+
     function checkoutSale() {
       const form = document.getElementById('checkout-form');
       const customer_id = form.customer_id.value;
@@ -891,11 +943,8 @@
       let subtotal = cart.reduce((sum, item) => sum + Number(item.subtotal), 0);
       let discountAmount = discount > 0 ? (discount < 1 ? subtotal * discount : discount) : 0;
       let grandTotal = subtotal - discountAmount;
-      if (payment < grandTotal) {
-        saleMessage = 'Payment not enough!';
-        renderSaleUI();
-        return;
-      }
+      // Allow payment == grandTotal
+      // (no change needed, just allow equal)
       saleLoading = true;
       saleMessage = '';
       renderSaleUI();
@@ -928,7 +977,7 @@
             subtotal,
             discount: discountAmount,
             total: grandTotal,
-            payment,
+            payment: payment, // always save payment
             change: payment-grandTotal,
             note
           };
@@ -936,7 +985,7 @@
           saleForm = { product_id: '', quantity: 1, price: 0, customer_id: '', staff_id: '', note: '', discount: 0, payment: 0 };
           saleMessage = '';
           showInvoice = true;
-          renderSaleUI();
+          fetchSalesHistory().then(()=>renderSaleUI());
         } else {
           saleMessage = 'Checkout failed!';
           renderSaleUI();
@@ -945,32 +994,83 @@
     }
 
     function renderInvoiceModal(inv) {
+      // Calculate change for display
+      let payment = inv.payment !== undefined ? inv.payment : 0;
+      let change = payment > inv.total ? (payment - inv.total) : 0;
       return `<div id="invoice-modal" style="position:fixed;z-index:9999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:14px;box-shadow:0 4px 24px #0002;padding:32px 24px;min-width:320px;max-width:95vw;">
-          <h2 style="margin-top:0;margin-bottom:10px;font-size:1.2em;">Invoice / Receipt</h2>
-          <div style="font-size:1.05em;margin-bottom:8px;">Sale ID: <b>${inv.id}</b> &nbsp; Date: <b>${inv.date}</b></div>
-          <div style="font-size:1.05em;margin-bottom:8px;">Customer: <b>${inv.customer}</b> &nbsp; Staff: <b>${inv.staff}</b></div>
-          <table style="width:100%;margin-bottom:10px;font-size:1em;">
-            <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
-            <tbody>
-              ${inv.items.map(item=>`<tr><td>${item.name}</td><td>${item.quantity}</td><td>${item.price}</td><td>${item.subtotal}</td></tr>`).join('')}
-            </tbody>
-          </table>
-          <div style="text-align:right;font-size:1.08em;">Subtotal: <b>${inv.subtotal.toFixed(2)}</b></div>
-          <div style="text-align:right;font-size:1.08em;">Discount: <b>${inv.discount.toFixed(2)}</b></div>
-          <div style="text-align:right;font-size:1.15em;">Total: <b>${inv.total.toFixed(2)}</b></div>
-          <div style="text-align:right;font-size:1.08em;">Payment: <b>${inv.payment.toFixed(2)}</b> &nbsp; Change: <b>${inv.change.toFixed(2)}</b></div>
-          <div style="margin:10px 0 0 0;font-size:0.98em;color:#888;">Note: ${inv.note||'-'}</div>
-          <div style="margin-top:18px;text-align:right;">
-            <button class="pos-btn" onclick="window.print()">Print</button>
+        <div style="background:#fff;border-radius:10px;box-shadow:0 2px 12px #0002;padding:0;min-width:320px;max-width:95vw;width:370px;">
+          <div id="voucher-print-area" style="padding:32px 24px 18px 24px;font-family:monospace;color:#222;background:#fff;">
+            <div style="text-align:center;margin-bottom:8px;">
+              <div style="font-size:1.25em;font-weight:bold;letter-spacing:1px;">MY POS STORE</div>
+              <div style="font-size:1em;">No.123, Main Road, Yangon</div>
+              <div style="font-size:0.98em;">09-123456789</div>
+            </div>
+            <div style="border-top:1px dashed #888;border-bottom:1px dashed #888;padding:6px 0 6px 0;margin-bottom:8px;text-align:center;font-size:1.1em;font-weight:bold;">RECEIPT / INVOICE</div>
+            <div style="font-size:0.98em;margin-bottom:2px;">Date: <b>${inv.date}</b></div>
+            <div style="font-size:0.98em;margin-bottom:2px;">Sale ID: <b>${inv.id}</b></div>
+            <div style="font-size:0.98em;margin-bottom:2px;">Customer: <b>${inv.customer}</b></div>
+            <div style="font-size:0.98em;margin-bottom:8px;">Staff: <b>${inv.staff}</b></div>
+            <table style="width:100%;font-size:1em;margin-bottom:8px;border-collapse:collapse;">
+              <thead><tr style="border-bottom:1px solid #bbb;"><th style="text-align:left;font-weight:bold;">Item</th><th style="text-align:right;font-weight:bold;">Qty</th><th style="text-align:right;font-weight:bold;">Price</th><th style="text-align:right;font-weight:bold;">Amt</th></tr></thead>
+              <tbody>
+                ${inv.items.map(item=>`<tr><td>${item.name}</td><td style="text-align:right;">${item.quantity}</td><td style="text-align:right;">${Number(item.price).toFixed(2)}</td><td style="text-align:right;">${Number(item.subtotal).toFixed(2)}</td></tr>`).join('')}
+              </tbody>
+            </table>
+            <div style="border-top:1px dashed #888;margin:8px 0 8px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:1em;"><span>Subtotal</span><b>${Number(inv.subtotal).toFixed(2)}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:1em;"><span>Discount</span><b>${Number(inv.discount).toFixed(2)}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:1.1em;"><span>Total</span><b>${Number(inv.total).toFixed(2)}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:1em;"><span>Payment</span><b>${Number(payment).toFixed(2)}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:1em;"><span>Change</span><b>${change.toFixed(2)}</b></div>
+            <div style="font-size:0.98em;margin:8px 0 0 0;color:#555;">Note: ${inv.note||'-'}</div>
+            <div style="text-align:center;margin-top:16px;font-size:1.08em;font-weight:bold;letter-spacing:1px;">Thank you for your purchase!</div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;padding:12px 18px 18px 18px;background:#fff;border-radius:0 0 10px 10px;">
+            <button class="pos-btn" onclick="printVoucher()">Print</button>
             <button class="pos-btn cancel" onclick="closeInvoiceModal()">Close</button>
           </div>
         </div>
       </div>`;
     }
+
     function closeInvoiceModal() {
       showInvoice = false;
       renderSaleUI();
+    }
+
+    function printVoucher() {
+      const printContents = document.getElementById('voucher-print-area').innerHTML;
+      const win = window.open('', '', 'width=1200,height=600');
+      win.document.write('<html><head><title>Print Voucher</title><style>body{background:#fff!important;color:#222!important;font-family:monospace;}@media print{body{background:#fff!important;color:#222!important;}}</style></head><body>' + printContents + '</body></html>');
+      win.document.close();
+      win.focus();
+      setTimeout(()=>{win.print();win.close();}, 300);
+    }
+
+    function renderSalesHistoryTab() {
+      preloadSaleData().then(() => {
+        fetchSalesHistory().then(() => {
+          let salesRows = salesHistory.map(sale => `
+            <tr>
+              <td>${sale.sale_date ? sale.sale_date.replace('T',' ').slice(0,19) : ''}</td>
+              <td>${customersList.find(c=>c.id==sale.customer_id)?.name||''}</td>
+              <td>${staffList.find(s=>s.id==sale.staff_id)?.name||''}</td>
+              <td>${Number(sale.total).toFixed(2)}</td>
+              <td><button class="pos-btn" style="padding:4px 12px;font-size:0.95em" onclick="showSaleInvoice(${sale.id})">View</button></td>
+            </tr>
+          `).join('');
+          document.getElementById('crud-app').innerHTML = `
+            <h2>Sales History</h2>
+            <div class="pos-card">
+              <div class="pos-table-wrap">
+                <table><thead><tr><th>Date</th><th>Customer</th><th>Staff</th><th>Total</th><th>Invoice</th></tr></thead>
+                <tbody>${salesRows || '<tr><td colspan="5" style="text-align:center;color:#aaa;">No sales yet</td></tr>'}</tbody></table>
+              </div>
+            </div>
+            ${showInvoice && lastInvoice ? renderInvoiceModal(lastInvoice) : ''}
+          `;
+        });
+      });
     }
 
     // Initial render
