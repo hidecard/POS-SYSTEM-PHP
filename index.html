@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>POS CRUD System (SQLite + PHP)</title>
+  <style>
+    body { font-family: sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+    .container { max-width: 900px; margin: 30px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 30px; }
+    h1 { text-align: center; }
+    nav { text-align: center; margin-bottom: 20px; }
+    nav button { margin: 0 5px; padding: 8px 18px; border: none; border-radius: 4px; background: #eee; cursor: pointer; }
+    nav button.active { background: #007bff; color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f0f0f0; }
+    tr:nth-child(even) { background: #fafafa; }
+    .actions button { margin-right: 5px; }
+    form { margin-top: 20px; }
+    form input, form select { margin: 0 5px 10px 0; padding: 6px; }
+    .form-row { margin-bottom: 8px; }
+    .edit-row { background: #ffe; }
+    .error { color: red; }
+    @media (max-width: 700px) {
+      .container { padding: 10px; }
+      table, th, td { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>POS CRUD System</h1>
+    <nav>
+      <button id="tab-products" class="active" onclick="switchTab('products')">Products</button>
+      <button id="tab-customers" onclick="switchTab('customers')">Customers</button>
+      <button id="tab-categories" onclick="switchTab('categories')">Categories</button>
+      <button id="tab-unit" onclick="switchTab('unit')">Unit</button>
+      <button id="tab-supplier" onclick="switchTab('supplier')">Supplier</button>
+    </nav>
+    <div id="crud-app"></div>
+  </div>
+  <script>
+    // Table configs
+    const tables = {
+      products: {
+        label: "Products",
+        endpoint: "http://localhost/POS%20SYSTEM/api/products.php",
+        fields: [
+          {name: "productname", label: "Product Name", required: true},
+          {name: "categories", label: "Categories", type: "select", source: "categories"},
+          {name: "barcode", label: "Barcode"},
+          {name: "cost", label: "Cost", type: "number"},
+          {name: "price", label: "Price", type: "number"},
+          {name: "stock", label: "Stock", type: "number"},
+          {name: "unit", label: "Unit", type: "select", source: "unit"},
+          {name: "supplier", label: "Supplier", type: "select", source: "supplier"},
+          {name: "note", label: "Note"}
+        ]
+      },
+      customers: {
+        label: "Customers",
+        endpoint: "http://localhost/POS%20SYSTEM/api/customers.php",
+        fields: [
+          {name: "name", label: "Name", required: true},
+          {name: "adress", label: "Address"},
+          {name: "category", label: "Category"},
+          {name: "note", label: "Note"},
+          {name: "phonenumber", label: "Phone"}
+        ]
+      },
+      categories: {
+        label: "Categories",
+        endpoint: "http://localhost/POS%20SYSTEM/api/categories.php",
+        fields: [
+          {name: "categoryname", label: "Category Name", required: true}
+        ]
+      },
+      unit: {
+        label: "Unit",
+        endpoint: "http://localhost/POS%20SYSTEM/api/unit.php",
+        fields: [
+          {name: "unit", label: "Unit", required: true}
+        ]
+      },
+      supplier: {
+        label: "Supplier",
+        endpoint: "http://localhost/POS%20SYSTEM/api/supplier.php",
+        fields: [
+          {name: "name", label: "Name", required: true},
+          {name: "adress", label: "Address"},
+          {name: "phonenumber", label: "Phone"},
+          {name: "note", label: "Note"}
+        ]
+      }
+    };
+
+    let currentTab = 'products';
+    let editingId = null;
+    let dataCache = [];
+
+    function switchTab(tab) {
+      currentTab = tab;
+      editingId = null;
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      renderCRUD();
+    }
+
+    const preloadData = {};
+
+    function preloadSelectData() {
+      const sources = ["categories", "unit", "supplier"];
+      return Promise.all(sources.map(src =>
+        fetch(tables[src].endpoint)
+          .then(res => res.json())
+          .then(data => { preloadData[src] = data; })
+      ));
+    }
+
+    function renderCRUD() {
+      const cfg = tables[currentTab];
+      preloadSelectData().then(() => {
+        let html = `<h2>${cfg.label}</h2>
+          <div id="error" class="error"></div>
+          <form id="crud-form" onsubmit="event.preventDefault(); ${editingId ? 'submitEdit()' : 'submitAdd()'}">
+            <div class="form-row">`;
+        cfg.fields.forEach(f => {
+          if (f.type === "select" && preloadData[f.source]) {
+            html += `<label>${f.label}: <select name="${f.name}" ${f.required ? 'required' : ''}>
+              <option value="">-- Select --</option>`;
+            preloadData[f.source].forEach(opt => {
+              let label = opt.categoryname || opt.unit || opt.name;
+              html += `<option value="${opt.id}">${label}</option>`;
+            });
+            html += `</select></label> `;
+          } else {
+            html += `<label>${f.label}: <input name="${f.name}" ${f.type ? `type="${f.type}"` : ''} ${f.required ? 'required' : ''}></label> `;
+          }
+        });
+        html += `<button type="submit">${editingId ? 'Update' : 'Add'}</button>`;
+        if (editingId) html += `<button type="button" onclick="cancelEdit()">Cancel</button>`;
+        html += `</div></form>
+          <table><thead><tr>`;
+        cfg.fields.forEach(f => html += `<th>${f.label}</th>`);
+        html += `<th>Actions</th></tr></thead><tbody id="crud-tbody"></tbody></table>`;
+        document.getElementById('crud-app').innerHTML = html;
+        loadData();
+      });
+    }
+
+    function loadData() {
+      const cfg = tables[currentTab];
+      fetch(cfg.endpoint)
+        .then(res => res.json())
+        .then(data => {
+          dataCache = data;
+          const tbody = document.getElementById('crud-tbody');
+          tbody.innerHTML = '';
+          data.forEach(row => {
+            const isEdit = editingId == row.id;
+            let tr = `<tr${isEdit ? ' class="edit-row"' : ''}>`;
+            cfg.fields.forEach(f => {
+              if (f.type === "select" && preloadData[f.source]) {
+                let found = preloadData[f.source].find(opt => opt.id == row[f.name]);
+                let label = found ? (found.categoryname || found.unit || found.name) : '';
+                tr += `<td>${label}</td>`;
+              } else {
+                tr += `<td>${row[f.name] ?? ''}</td>`;
+              }
+            });
+            tr += `<td class="actions">`;
+            tr += `<button onclick="startEdit(${row.id})">Edit</button>`;
+            tr += `<button onclick="deleteRow(${row.id})">Delete</button>`;
+            tr += `</td></tr>`;
+            tbody.innerHTML += tr;
+          });
+        });
+    }
+
+    function getFormData() {
+      const cfg = tables[currentTab];
+      const form = document.getElementById('crud-form');
+      const obj = {};
+      cfg.fields.forEach(f => {
+        obj[f.name] = form[f.name].value;
+      });
+      return obj;
+    }
+
+    function submitAdd() {
+      const cfg = tables[currentTab];
+      const data = getFormData();
+      fetch(cfg.endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          renderCRUD();
+        } else {
+          showError('Add failed');
+        }
+      });
+    }
+
+    function startEdit(id) {
+      editingId = id;
+      renderCRUD();
+      // Fill form
+      const row = dataCache.find(r => r.id == id);
+      if (row) {
+        const form = document.getElementById('crud-form');
+        tables[currentTab].fields.forEach(f => {
+          form[f.name].value = row[f.name] ?? '';
+        });
+      }
+    }
+
+    function submitEdit() {
+      const cfg = tables[currentTab];
+      const data = getFormData();
+      fetch(cfg.endpoint + '?id=' + editingId, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          editingId = null;
+          renderCRUD();
+        } else {
+          showError('Update failed');
+        }
+      });
+    }
+
+    function deleteRow(id) {
+      if (!confirm('Delete this record?')) return;
+      const cfg = tables[currentTab];
+      fetch(cfg.endpoint + '?id=' + id, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) renderCRUD();
+          else showError('Delete failed');
+        });
+    }
+
+    function cancelEdit() {
+      editingId = null;
+      renderCRUD();
+    }
+
+    function showError(msg) {
+      document.getElementById('error').textContent = msg;
+    }
+
+    // Initial render
+    renderCRUD();
+  </script>
+</body>
+</html>
