@@ -65,7 +65,32 @@ CREATE TABLE IF NOT EXISTS customers (
     phonenumber TEXT,
     note TEXT
   );
-  
+  CREATE TABLE IF NOT EXISTS sales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sale_date TEXT,
+  customer_id INTEGER,
+  staff_id INTEGER,
+  total REAL,
+  note TEXT
+);
+
+CREATE TABLE IF NOT EXISTS staff (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  role TEXT,
+  phone TEXT,
+  email TEXT,
+  note TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sales_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sale_id INTEGER,
+  product_id INTEGER,
+  quantity INTEGER,
+  price REAL,
+  subtotal REAL
+);
 ");
 echo "SQLite database.db & tables created successfully!";
 ?>
