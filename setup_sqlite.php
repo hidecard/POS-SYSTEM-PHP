@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS sales_items (
   price REAL,
   subtotal REAL
 );
+ALTER TABLE sales ADD COLUMN payment REAL DEFAULT 0;
 ");
 echo "SQLite database.db & tables created successfully!";
 ?>

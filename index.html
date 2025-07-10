@@ -938,13 +938,13 @@
       const staff_id = form.staff_id.value;
       const note = form.note.value;
       const discount = Number(form.discount)||0;
-      const payment = Number(form.payment)||0;
+      // Always get payment from the input field, not from saleForm
+      const payment = Number(form.payment.value)||0;
+      saleForm.payment = payment; // sync saleForm.payment for UI
       if (!customer_id || !staff_id || cart.length===0) return;
       let subtotal = cart.reduce((sum, item) => sum + Number(item.subtotal), 0);
       let discountAmount = discount > 0 ? (discount < 1 ? subtotal * discount : discount) : 0;
       let grandTotal = subtotal - discountAmount;
-      // Allow payment == grandTotal
-      // (no change needed, just allow equal)
       saleLoading = true;
       saleMessage = '';
       renderSaleUI();
@@ -954,6 +954,7 @@
         body: JSON.stringify({
           sale_date: new Date().toISOString().slice(0,19).replace('T',' '),
           customer_id, staff_id, total: grandTotal, note,
+          payment, // ← payment ကိုထည့်ပို့
           items: cart
         })
       })
@@ -977,8 +978,8 @@
             subtotal,
             discount: discountAmount,
             total: grandTotal,
-            payment: payment, // always save payment
-            change: payment-grandTotal,
+            payment: payment, // always use the latest payment from the form
+            change: payment - grandTotal, // ← change မှန်အောင်
             note
           };
           cart = [];
@@ -996,7 +997,7 @@
     function renderInvoiceModal(inv) {
       // Calculate change for display
       let payment = inv.payment !== undefined ? inv.payment : 0;
-      let change = payment > inv.total ? (payment - inv.total) : 0;
+      let change = payment - inv.total;
       return `<div id="invoice-modal" style="position:fixed;z-index:9999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;">
         <div style="background:#fff;border-radius:10px;box-shadow:0 2px 12px #0002;padding:0;min-width:320px;max-width:95vw;width:370px;">
           <div id="voucher-print-area" style="padding:32px 24px 18px 24px;font-family:monospace;color:#222;background:#fff;">
@@ -1056,6 +1057,8 @@
               <td>${customersList.find(c=>c.id==sale.customer_id)?.name||''}</td>
               <td>${staffList.find(s=>s.id==sale.staff_id)?.name||''}</td>
               <td>${Number(sale.total).toFixed(2)}</td>
+              <td>${sale.payment !== undefined ? Number(sale.payment).toFixed(2) : '-'}</td>
+              <td>${sale.payment !== undefined && sale.total !== undefined ? (Number(sale.payment) - Number(sale.total)).toFixed(2) : '-'}</td>
               <td><button class="pos-btn" style="padding:4px 12px;font-size:0.95em" onclick="showSaleInvoice(${sale.id})">View</button></td>
             </tr>
           `).join('');
@@ -1063,8 +1066,8 @@
             <h2>Sales History</h2>
             <div class="pos-card">
               <div class="pos-table-wrap">
-                <table><thead><tr><th>Date</th><th>Customer</th><th>Staff</th><th>Total</th><th>Invoice</th></tr></thead>
-                <tbody>${salesRows || '<tr><td colspan="5" style="text-align:center;color:#aaa;">No sales yet</td></tr>'}</tbody></table>
+                <table><thead><tr><th>Date</th><th>Customer</th><th>Staff</th><th>Total</th><th>Payment</th><th>Change</th><th>Invoice</th></tr></thead>
+                <tbody>${salesRows || '<tr><td colspan="7" style="text-align:center;color:#aaa;">No sales yet</td></tr>'}</tbody></table>
               </div>
             </div>
             ${showInvoice && lastInvoice ? renderInvoiceModal(lastInvoice) : ''}

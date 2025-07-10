@@ -19,13 +19,14 @@ switch($_SERVER['REQUEST_METHOD']) {
     // Create new sale with items
     $data = json_decode(file_get_contents('php://input'), true);
     $pdo->beginTransaction();
-    $stmt = $pdo->prepare("INSERT INTO sales (sale_date, customer_id, staff_id, total, note) VALUES (?, ?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO sales (sale_date, customer_id, staff_id, total, note, payment) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->execute([
       $data['sale_date'] ?? date('Y-m-d H:i:s'),
       $data['customer_id'],
       $data['staff_id'],
       $data['total'],
-      $data['note']
+      $data['note'],
+      $data['payment'] ?? 0
     ]);
     $sale_id = $pdo->lastInsertId();
     foreach ($data['items'] as $item) {
