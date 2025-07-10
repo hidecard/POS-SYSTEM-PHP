@@ -432,6 +432,14 @@
         <span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3" fill="#fff" fill-opacity="0.7"/><rect x="4" y="12" width="12" height="5" rx="2.5" fill="#fff" fill-opacity="0.2"/></svg></span>
         Staff
       </button>
+      <button id="tab-settings" onclick="switchTab('settings')">
+        <span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="2" fill="none"/><path d="M10 6v4l3 3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></span>
+        Settings
+      </button>
+      <button id="tab-reports" onclick="switchTab('reports')">
+        <span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" rx="2" fill="#fff" fill-opacity="0.2"/><rect x="5" y="7" width="10" height="6" rx="1" fill="#fff" fill-opacity="0.7"/></svg></span>
+        Reports
+      </button>
     </nav>
     <main class="pos-main">
       <div class="pos-card" id="crud-app"></div>
@@ -466,7 +474,8 @@
           {name: "stock", label: "Stock", type: "number"},
           {name: "unit", label: "Unit", type: "select", source: "unit"},
           {name: "supplier", label: "Supplier", type: "select", source: "supplier"},
-          {name: "note", label: "Note"}
+          {name: "note", label: "Note"},
+          {name: "stock_noti", label: "Stock Noti Threshold", type: "number", required: false}
         ]
       },
       customers: {
@@ -536,6 +545,7 @@
     let showInvoice = false;
     let lastInvoice = null;
     let salesHistory = [];
+    let stockAlertShown = false;
 
     function switchTab(tab) {
       currentTab = tab;
@@ -545,6 +555,14 @@
       if (window.innerWidth <= 900) sidebar.classList.remove('open');
       if (tab === 'sales-history') {
         renderSalesHistoryTab();
+        return;
+      }
+      if (tab === 'reports') {
+        renderReportsPage();
+        return;
+      }
+      if (tab === 'settings') {
+        renderSettingsPage();
         return;
       }
       renderCRUD();
@@ -632,6 +650,27 @@
           let grandTotal = subtotal - discountAmount;
           let payment = Number(saleForm.payment)||0;
           let change = payment - grandTotal;
+          // Stock check logic
+          let selectedProduct = productsList.find(p=>p.id==saleForm.product_id);
+          let stockOk = true;
+          let stockMsg = '';
+          if (selectedProduct) {
+            let threshold = Number(selectedProduct.stock_noti ?? 5);
+            let stock = Number(selectedProduct.stock ?? 0);
+            let qty = Number(saleForm.quantity) || 1;
+            if (stock < threshold) {
+              stockOk = false;
+              stockMsg = `Stock is below notification threshold!`;
+            }
+            if (stock < qty) {
+              stockOk = false;
+              stockMsg = `Not enough stock!`;
+            }
+            if (stock <= 0) {
+              stockOk = false;
+              stockMsg = `Out of stock!`;
+            }
+          }
           document.getElementById('crud-app').innerHTML = `
             <h2>Sales (POS)</h2>
             <form id="sale-form" onsubmit="event.preventDefault(); addToCart()">
@@ -653,8 +692,9 @@
                 </label>
               </div>
               <div class="pos-form-actions">
-                <button type="submit" class="pos-btn"><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><path d="M10 5v10m5-5H5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg> Add to Cart</button>
+                <button type="submit" class="pos-btn" id="add-to-cart-btn" ${!stockOk ? 'disabled' : ''}><svg width="18" height="18" fill="none" viewBox="0 0 20 20"><path d="M10 5v10m5-5H5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg> Add to Cart</button>
               </div>
+              ${!stockOk && saleForm.product_id ? `<div class='error' style='text-align:center;'>${stockMsg}</div>` : ''}
             </form>
             <div class="pos-card" style="margin-bottom:18px;">
               <h3 style="margin:0 0 10px 0;font-size:1.1em;">Cart</h3>
@@ -742,18 +782,29 @@
       }
       filtered.forEach(row => {
         const isEdit = editingId == row.id;
-        let tr = `<tr${isEdit ? ' class="edit-row"' : ''}>`;
+        let isLowStock = false;
+        if (currentTab === 'products') {
+          const stock = Number(row['stock'] ?? 0);
+          const threshold = Number(row['stock_noti'] ?? 5);
+          isLowStock = stock < threshold;
+        }
+        let tr = `<tr${isEdit ? ' class="edit-row"' : ''}${isLowStock ? ' style="background:#fff0f0;"' : ''}>`;
         cfg.fields.forEach(f => {
           if (f.type === "select" && preloadData[f.source]) {
             let found = preloadData[f.source].find(opt => opt.id == row[f.name]);
             let label = found ? (found.categoryname || found.unit || found.name) : '';
             tr += `<td>${label}</td>`;
+          } else if (f.name === 'stock' && isLowStock) {
+            tr += `<td>${row[f.name] ?? ''} <span title='Low Stock' style='color:#e74c3c;font-weight:bold;'>&#9888;</span></td>`;
           } else {
             tr += `<td>${row[f.name] ?? ''}</td>`;
           }
         });
         tr += `<td class="actions">`;
         tr += `<button onclick="startEdit(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M4 13.5V16h2.5l7.37-7.37-2.5-2.5L4 13.5zm11.71-6.29a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.92 3.92 1.83-1.83z" fill="#fff"/></svg> Edit</button>`;
+        if (currentTab === 'products') {
+          tr += `<button onclick="showStockInHistory(${row.id})" title="View Stock In History"><svg width='16' height='16' fill='none' viewBox='0 0 20 20'><path d='M4 10h12M10 4v12' stroke='#2563eb' stroke-width='2'/></svg> Stock In</button>`;
+        }
         tr += `<button onclick="deleteRow(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="7" rx="2" fill="#fff" fill-opacity="0.7"/><rect x="7" y="5" width="6" height="2" rx="1" fill="#fff" fill-opacity="0.7"/></svg> Delete</button>`;
         tr += `</td></tr>`;
         tbody.innerHTML += tr;
@@ -1074,6 +1125,302 @@
           `;
         });
       });
+    }
+
+    function renderReportsPage() {
+      document.getElementById('crud-app').innerHTML = `
+        <h2>Reports</h2>
+        <div class="pos-card">
+          <h3>Sales & Profit Report</h3>
+          <form id="report-form">
+            <div class="pos-form-row">
+              <label>Type
+                <select name="type">
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                  <option value="product">By Product</option>
+                </select>
+              </label>
+              <label>Month/Year
+                <input name="period" type="month" value="${new Date().toISOString().slice(0,7)}">
+              </label>
+            </div>
+            <div class="pos-form-actions">
+              <button type="submit" class="pos-btn">Show Report</button>
+            </div>
+          </form>
+          <div id="report-result"></div>
+        </div>
+      `;
+      document.getElementById('report-form').onsubmit = showReport;
+    }
+    function showReport(e) {
+      e.preventDefault();
+      document.getElementById('report-result').innerHTML = '<div style="text-align:center;">Loading...</div>';
+      const form = document.getElementById('report-form');
+      const type = form.type.value;
+      let period = form.period.value;
+      if (type === 'yearly') period = period.slice(0,4);
+      fetch(`api/sales.php?report=1&type=${type}&period=${period}`)
+        .then(res => res.json())
+        .then(data => {
+          let html = `<div style='font-size:1.1em;margin-bottom:10px;'>
+            <b>Total Sales:</b> ${Number(data.total).toFixed(2)}<br>
+            <b>Total Profit:</b> ${Number(data.profit).toFixed(2)}
+          </div>`;
+          if (data.byProduct && data.byProduct.length) {
+            html += `<table style='width:100%;font-size:1em;margin-bottom:8px;border-collapse:collapse;'>
+              <thead><tr><th>Product</th><th>Qty</th><th>Sales</th><th>Profit</th></tr></thead>
+              <tbody>
+                ${data.byProduct.map(p=>`<tr><td>${p.name||''}</td><td>${p.qty}</td><td>${Number(p.total).toFixed(2)}</td><td>${Number(p.profit).toFixed(2)}</td></tr>`).join('')}
+              </tbody>
+            </table>`;
+          }
+          document.getElementById('report-result').innerHTML = html;
+        });
+    }
+
+    function renderSettingsPage() {
+      document.getElementById('crud-app').innerHTML = `
+        <h2>Settings</h2>
+        <div class="pos-card">
+          <h3>Store Info (Voucher/Invoice)</h3>
+          <form id="store-info-form">
+            <div class="pos-form-row">
+              <label>Store Name <input name="store_name" type="text" placeholder="Store Name"></label>
+              <label>Contact No <input name="store_contact" type="text" placeholder="Contact No"></label>
+              <label>Address <input name="store_address" type="text" placeholder="Address"></label>
+            </div>
+            <div class="pos-form-actions">
+              <button type="submit" class="pos-btn">Save Store Info</button>
+            </div>
+          </form>
+        </div>
+        <div class="pos-card">
+          <h3>Product Stock Notification</h3>
+          <form id="stock-noti-form">
+            <div class="pos-form-row">
+              <label>Default Stock Noti Threshold <input name="stock_noti_default" type="number" min="0" value="5"></label>
+            </div>
+            <div class="pos-form-actions">
+              <button type="submit" class="pos-btn">Save Stock Noti Setting</button>
+            </div>
+          </form>
+        </div>
+        <div class="pos-card">
+          <h3>Backup / Restore</h3>
+          <div class="pos-form-actions">
+            <button class="pos-btn" onclick="backupDatabase()">Backup Data</button>
+            <input type="file" id="restore-file" style="display:none" onchange="restoreDatabase(event)">
+            <button class="pos-btn" onclick="document.getElementById('restore-file').click()">Restore Data</button>
+          </div>
+        </div>
+        <div class="pos-card">
+          <h3>Delete Data</h3>
+          <div class="pos-form-actions">
+            <button class="pos-btn cancel" onclick="deleteAllData()">Delete All Data</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Store Info (Settings)
+    function saveStoreInfo(e) {
+      e.preventDefault();
+      const form = document.getElementById('store-info-form');
+      const info = {
+        name: form.store_name.value,
+        contact: form.store_contact.value,
+        address: form.store_address.value
+      };
+      localStorage.setItem('store_info', JSON.stringify(info));
+      alert('Store info saved!');
+    }
+
+    function loadStoreInfoToForm() {
+      const form = document.getElementById('store-info-form');
+      if (!form) return;
+      const info = JSON.parse(localStorage.getItem('store_info') || '{}');
+      form.store_name.value = info.name || '';
+      form.store_contact.value = info.contact || '';
+      form.store_address.value = info.address || '';
+    }
+
+    // Patch renderSettingsPage to attach event
+    const origRenderSettingsPage = renderSettingsPage;
+    renderSettingsPage = function() {
+      origRenderSettingsPage();
+      loadStoreInfoToForm();
+      document.getElementById('store-info-form').onsubmit = saveStoreInfo;
+    }
+
+    // Patch renderInvoiceModal to use store info
+    const origRenderInvoiceModal = renderInvoiceModal;
+    renderInvoiceModal = function(inv) {
+      const info = JSON.parse(localStorage.getItem('store_info') || '{}');
+      let storeName = info.name || 'MY POS STORE';
+      let storeContact = info.contact || '09-123456789';
+      let storeAddress = info.address || 'No.123, Main Road, Yangon';
+      return origRenderInvoiceModal(inv)
+        .replace('MY POS STORE', storeName)
+        .replace('09-123456789', storeContact)
+        .replace('No.123, Main Road, Yangon', storeAddress);
+    }
+
+    // Stock Noti Default (Settings)
+    function saveStockNotiDefault(e) {
+      e.preventDefault();
+      const form = document.getElementById('stock-noti-form');
+      const val = Number(form.stock_noti_default.value) || 5;
+      localStorage.setItem('stock_noti_default', val);
+      alert('Default stock notification threshold saved!');
+    }
+
+    function loadStockNotiDefaultToForm() {
+      const form = document.getElementById('stock-noti-form');
+      if (!form) return;
+      const val = localStorage.getItem('stock_noti_default') || '5';
+      form.stock_noti_default.value = val;
+    }
+
+    // Patch renderSettingsPage to attach event for stock noti default
+    const origRenderSettingsPage2 = renderSettingsPage;
+    renderSettingsPage = function() {
+      origRenderSettingsPage2();
+      loadStoreInfoToForm();
+      document.getElementById('store-info-form').onsubmit = saveStoreInfo;
+      loadStockNotiDefaultToForm();
+      document.getElementById('stock-noti-form').onsubmit = saveStockNotiDefault;
+    }
+
+    // Patch renderCRUD to set default stock_noti when adding product
+    const origRenderCRUD = renderCRUD;
+    renderCRUD = function(afterRender) {
+      origRenderCRUD(function() {
+        if (currentTab === 'products' && !editingId) {
+          // Only for add, not edit
+          const form = document.getElementById('crud-form');
+          if (form && form.stock_noti) {
+            const def = localStorage.getItem('stock_noti_default') || '5';
+            form.stock_noti.value = def;
+          }
+        }
+        if (afterRender) afterRender();
+      });
+    }
+
+    // Patch addToCart to show alert if stock not ok
+    const origAddToCart = addToCart;
+    addToCart = function() {
+      let selectedProduct = productsList.find(p=>p.id==saleForm.product_id);
+      if (selectedProduct) {
+        let threshold = Number(selectedProduct.stock_noti ?? 5);
+        let stock = Number(selectedProduct.stock ?? 0);
+        let qty = Number(document.getElementById('sale-form').quantity.value) || 1;
+        if (stock < threshold || stock < qty || stock <= 0) {
+          alert(stock <= 0 ? 'Out of stock!' : (stock < qty ? 'Not enough stock!' : 'Stock is below notification threshold!'));
+          return;
+        }
+      }
+      origAddToCart();
+    }
+
+    // Patch checkoutSale to block if any cart item is out of stock
+    const origCheckoutSale = checkoutSale;
+    checkoutSale = function() {
+      for (let item of cart) {
+        let p = productsList.find(p=>p.id==item.product_id);
+        if (p) {
+          let stock = Number(p.stock ?? 0);
+          if (item.quantity > stock) {
+            alert(`Cannot checkout: Not enough stock for ${p.productname}`);
+            return;
+          }
+          if (stock <= 0) {
+            alert(`Cannot checkout: ${p.productname} is out of stock!`);
+            return;
+          }
+        }
+      }
+      origCheckoutSale();
+    }
+
+    // Backup/Restore
+    function backupDatabase() {
+      fetch('database.db')
+        .then(res => res.blob())
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'database_backup.db';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+        });
+    }
+
+    function restoreDatabase(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (!confirm('Restore will overwrite all data. Continue?')) return;
+      const formData = new FormData();
+      formData.append('dbfile', file);
+      fetch('restore_db.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          alert('Database restored! Please reload the page.');
+        } else {
+          alert('Restore failed!');
+        }
+      });
+    }
+
+    function deleteAllData() {
+      if (!confirm('Are you sure you want to delete ALL data? This cannot be undone!')) return;
+      fetch('delete_all_data.php', { method: 'POST' })
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) {
+            alert('All data deleted! Please reload the page.');
+          } else {
+            alert('Delete failed!');
+          }
+        });
+    }
+
+    // Stock In History Modal
+    function showStockInHistory(productId) {
+      fetch(`api/products.php?stock_in_history=1&product_id=${productId}`)
+        .then(res => res.json())
+        .then(list => {
+          let html = `<div id='stock-in-modal' style='position:fixed;z-index:9999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;'>
+            <div style='background:#fff;border-radius:10px;box-shadow:0 2px 12px #0002;padding:0;min-width:320px;max-width:95vw;width:370px;'>
+              <div style='padding:24px 18px 10px 18px;'>
+                <h3 style='margin:0 0 10px 0;'>Stock In History</h3>
+                <table style='width:100%;font-size:1em;margin-bottom:8px;border-collapse:collapse;'>
+                  <thead><tr><th>Date</th><th>Qty</th><th>Note</th></tr></thead>
+                  <tbody>
+                    ${list.map(item=>`<tr><td>${item.created_at}</td><td>${item.qty}</td><td>${item.note||''}</td></tr>`).join('')}
+                  </tbody>
+                </table>
+                <div style='text-align:right;'><button class='pos-btn cancel' onclick='closeStockInModal()'>Close</button></div>
+              </div>
+            </div>
+          </div>`;
+          document.body.insertAdjacentHTML('beforeend', html);
+        });
+    }
+    function closeStockInModal() {
+      const m = document.getElementById('stock-in-modal');
+      if (m) m.remove();
     }
 
     // Initial render

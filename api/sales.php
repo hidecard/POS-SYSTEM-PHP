@@ -5,6 +5,36 @@ $pdo = new PDO('sqlite:' . $dbfile);
 
 switch($_SERVER['REQUEST_METHOD']) {
   case 'GET':
+    if (isset($_GET['report'])) {
+      $type = $_GET['type'] ?? 'monthly';
+      $period = $_GET['period'] ?? date('Y-m');
+      $where = '';
+      if ($type === 'monthly') {
+        $where = "WHERE sale_date LIKE '".addslashes($period)."%'";
+      } else if ($type === 'yearly') {
+        $where = "WHERE sale_date LIKE '".addslashes($period)."%'";
+      }
+      $sql = "SELECT * FROM sales $where ORDER BY id DESC";
+      $sales = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+      $total = 0; $profit = 0; $byProduct = [];
+      foreach ($sales as $sale) {
+        $stmt2 = $pdo->prepare("SELECT si.*, p.cost FROM sales_items si LEFT JOIN products p ON si.product_id = p.id WHERE sale_id=?");
+        $stmt2->execute([$sale['id']]);
+        $items = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($items as $item) {
+          $total += $item['subtotal'];
+          $itemProfit = ($item['price'] - ($item['cost'] ?? 0)) * $item['quantity'];
+          $profit += $itemProfit;
+          if (!isset($byProduct[$item['product_id']])) $byProduct[$item['product_id']] = ['qty'=>0,'total'=>0,'profit'=>0];
+          $byProduct[$item['product_id']]['qty'] += $item['quantity'];
+          $byProduct[$item['product_id']]['total'] += $item['subtotal'];
+          $byProduct[$item['product_id']]['profit'] += $itemProfit;
+          $byProduct[$item['product_id']]['name'] = $item['productname'] ?? '';
+        }
+      }
+      echo json_encode(['total'=>$total, 'profit'=>$profit, 'byProduct'=>array_values($byProduct)]);
+      break;
+    }
     // Get all sales with items
     $stmt = $pdo->query("SELECT * FROM sales ORDER BY id DESC");
     $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS products (
   price REAL,
   stock INTEGER,
   unit TEXT,
-  note TEXT
+  note TEXT,
+  stock_noti INTEGER DEFAULT 5
 );
 CREATE TABLE IF NOT EXISTS customers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +92,14 @@ CREATE TABLE IF NOT EXISTS sales_items (
   price REAL,
   subtotal REAL
 );
-ALTER TABLE sales ADD COLUMN payment REAL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS stock_in_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  product_id INTEGER,
+  qty INTEGER,
+  note TEXT,
+  created_at TEXT
+);
 ");
 echo "SQLite database.db & tables created successfully!";
 ?>
