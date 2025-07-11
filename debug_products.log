@@ -68,3 +68,21 @@
 
 )
 
+2025-07-11 19:27:42 Array
+(
+    [POST_FORM] => Array
+        (
+            [productname] => Orange
+            [categories] => 4
+            [barcode] => 001
+            [cost] => 1000
+            [price] => 6000
+            [stock] => 12
+            [unit] => 6
+            [supplier] => 4
+            [note] => 
+            [stock_noti] => 1
+        )
+
+)
+

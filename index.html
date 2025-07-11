@@ -386,6 +386,185 @@
       }
     }
   </style>
+  <!-- Toast Notification CSS -->
+  <style>
+    .pos-toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: #222; color: #fff; padding: 14px 28px; border-radius: 8px; font-size: 1.08em; opacity: 0; pointer-events: none; z-index: 9999; transition: opacity 0.4s, bottom 0.4s; box-shadow: 0 2px 12px #0003; }
+    .pos-toast.show { opacity: 1; bottom: 60px; pointer-events: auto; }
+    .pos-toast-success { background: #27ae60; }
+    .pos-toast-error { background: #e74c3c; }
+    .pos-toast-warning { background: #f39c12; color: #222; }
+  </style>
+  <!-- Delete All Data Modal CSS -->
+  <style>
+    .pos-modal-bg { position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.18);z-index:9998; }
+    .pos-modal { position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 2px 18px #0003;padding:28px 24px 18px 24px;z-index:9999;min-width:320px;max-width:95vw;width:370px; }
+    .pos-btn.danger { background:#e74c3c; }
+  </style>
+  <!-- Modern POS Global CSS -->
+  <style>
+  body { font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif; background: #f6f7fb; color: #222; margin: 0; min-height: 100vh; }
+  .pos-layout { display: flex; min-height: 100vh; }
+  .pos-sidebar { width: 230px; background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%); color: #fff; padding: 0; box-shadow: 2px 0 12px #0001; display: flex; flex-direction: column; z-index: 100; transition: left 0.3s; }
+  .pos-sidebar .logo { font-size: 1.5em; font-weight: bold; padding: 28px 0 18px 0; text-align: center; letter-spacing: 1px; color: #fff; }
+  .pos-sidebar button { background: none; border: none; color: #fff; font-size: 1.08em; padding: 16px 24px; text-align: left; cursor: pointer; transition: background 0.18s, color 0.18s; outline: none; border-left: 4px solid transparent; display: flex; align-items: center; gap: 10px; }
+  .pos-sidebar button.active, .pos-sidebar button:focus { background: #fff2; color: #fff; border-left: 4px solid #fff; }
+  .pos-sidebar button:hover { background: #fff1; }
+  .pos-main { flex: 1; padding: 36px 32px 32px 32px; background: #f6f7fb; min-width: 0; }
+  .pos-card { background: #fff; border-radius: 14px; box-shadow: 0 2px 12px #0001; padding: 28px 24px 18px 24px; margin-bottom: 28px; max-width: 100%; }
+  .pos-form-row { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 18px; }
+  .pos-form-row label { flex: 1 1 180px; display: flex; flex-direction: column; font-size: 1.05em; gap: 6px; }
+  .pos-form-row input, .pos-form-row select { padding: 9px 12px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 1em; background: #f9fafb; transition: border 0.2s; }
+  .pos-form-row input:focus, .pos-form-row select:focus { border: 1.5px solid #2563eb; outline: none; }
+  .pos-form-actions { display: flex; gap: 12px; margin-top: 8px; }
+  .pos-btn { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 10px 22px; font-size: 1.08em; font-weight: 500; cursor: pointer; transition: background 0.18s, box-shadow 0.18s; box-shadow: 0 2px 8px #2563eb22; display: inline-flex; align-items: center; gap: 7px; }
+  .pos-btn:hover, .pos-btn:focus { background: #1e40af; }
+  .pos-btn.cancel { background: #e74c3c; }
+  .pos-btn.cancel:hover, .pos-btn.cancel:focus { background: #c0392b; }
+  .pos-btn:active { box-shadow: 0 1px 4px #2563eb33; }
+  .pos-table-wrap { overflow-x: auto; margin-top: 18px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; font-size: 1.04em; }
+  thead { background: #f1f5f9; }
+  th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+  th { font-weight: 600; color: #222; }
+  tr.edit-row { background: #e0e7ff !important; }
+  tr:hover:not(.edit-row) { background: #f3f4f6; }
+  input[type="file"] { background: #f9fafb; border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 10px; }
+  .error { color: #e74c3c; margin-bottom: 10px; font-size: 1.05em; }
+  @media (max-width: 1100px) { .pos-main { padding: 24px 8px 18px 8px; } .pos-card { padding: 18px 8px 12px 8px; } }
+  @media (max-width: 900px) { .pos-layout { flex-direction: column; } .pos-sidebar { position: fixed; left: -230px; top: 0; height: 100vh; width: 230px; z-index: 1000; transition: left 0.3s; } .pos-sidebar.open { left: 0; } .pos-main { padding: 18px 2vw 12px 2vw; } }
+  @media (max-width: 600px) { .pos-card { padding: 10px 2vw 8px 2vw; } .pos-form-row { flex-direction: column; gap: 10px; } th, td { padding: 8px 4px; font-size: 0.98em; } .pos-btn { padding: 8px 12px; font-size: 1em; } }
+  </style>
+  
+  <style>
+  :root {
+    --pos-bg: #f6f7fb;
+    --pos-card: #fff;
+    --pos-text: #222;
+    --pos-primary: #2563eb;
+    --pos-primary-dark: #1e40af;
+    --pos-danger: #e74c3c;
+    --pos-success: #27ae60;
+    --pos-warning: #f39c12;
+    --pos-border: #d1d5db;
+    --pos-table-head: #f1f5f9;
+  }
+  body.dark {
+    --pos-bg: #181c24;
+    --pos-card: #232a36;
+    --pos-text: #f3f4f6;
+    --pos-primary: #3b82f6;
+    --pos-primary-dark: #1e40af;
+    --pos-danger: #e74c3c;
+    --pos-success: #27ae60;
+    --pos-warning: #f39c12;
+    --pos-border: #374151;
+    --pos-table-head: #232a36;
+  }
+  body, .pos-main { background: var(--pos-bg) !important; color: var(--pos-text) !important; }
+  .pos-card { background: var(--pos-card) !important; color: var(--pos-text) !important; }
+  .pos-sidebar { background: linear-gradient(180deg, var(--pos-primary) 0%, var(--pos-primary-dark) 100%) !important; }
+  .pos-btn { background: var(--pos-primary) !important; color: #fff !important; }
+  .pos-btn:hover, .pos-btn:focus { background: var(--pos-primary-dark) !important; }
+  .pos-btn.cancel { background: var(--pos-danger) !important; }
+  .pos-btn.cancel:hover, .pos-btn.cancel:focus { background: #c0392b !important; }
+  .pos-table-wrap thead { background: var(--pos-table-head) !important; }
+  table, th, td { color: var(--pos-text) !important; }
+  input, select { background: #f9fafb; color: var(--pos-text); border: 1px solid var(--pos-border); }
+  body.dark input, body.dark select { background: #232a36; color: #f3f4f6; border: 1px solid var(--pos-border); }
+  </style>
+  // --- Add SVG icons to action buttons ---
+  <style>
+  .actions button {
+    margin-right: 6px;
+    padding: 7px 15px;
+    font-size: 1.05rem;
+    border-radius: 5px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    box-shadow: 0 2px 8px #2563eb22;
+  }
+  .actions button:last-child {
+    background: var(--danger);
+  }
+  .actions button:hover {
+    opacity: 0.88;
+  }
+  .actions button svg {
+    width: 16px;
+    height: 16px;
+    fill: #fff;
+  }
+  </style>
+  // --- Modal focus trap, ESC close ---
+  <style>
+  .pos-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 18px #0003;
+    padding: 28px 24px 18px 24px;
+    z-index: 9999;
+    min-width: 320px;
+    max-width: 95vw;
+    width: 370px;
+  }
+  .pos-btn.danger {
+    background: #e74c3c;
+  }
+  .pos-btn.cancel {
+    background: #aaa;
+  }
+  .pos-btn.cancel:hover, .pos-btn.cancel:focus {
+    background: #888;
+  }
+  .pos-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: #fff;
+  }
+  </style>
+  // --- Table sticky header on mobile ---
+  <style>
+  @media (max-width:700px){ .pos-table-wrap thead th { position: sticky; top: 0; background: var(--pos-table-head,#f1f5f9); z-index: 2; }}
+  </style>
+  /* Input box UI polish */
+  <style>
+  input, select, textarea {
+    padding: 10px 14px;
+    border-radius: 7px;
+    border: 1.5px solid #d1d5db;
+    font-size: 1.07em;
+    background: #f9fafb;
+    transition: border 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 4px #0001;
+    outline: none;
+    margin-bottom: 2px;
+  }
+  input:focus, select:focus, textarea:focus {
+    border: 1.5px solid #2563eb;
+    box-shadow: 0 2px 8px #2563eb22;
+    background: #fff;
+  }
+  input::placeholder, textarea::placeholder {
+    color: #b0b6c1;
+    opacity: 1;
+    font-size: 0.98em;
+  }
+  input:disabled, select:disabled, textarea:disabled {
+    background: #f1f1f1;
+    color: #aaa;
+    border: 1.5px solid #e5e7eb;
+  }
+  </style>
 </head>
 <body>
   <div class="pos-header">
@@ -1646,6 +1825,188 @@
 
     // Initial render
     renderCRUD();
+
+    // --- Toast Notification ---
+    function showToast(msg, type = 'info') {
+      let toast = document.createElement('div');
+      toast.className = 'pos-toast pos-toast-' + type;
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.classList.add('show'); }, 10);
+      setTimeout(() => { toast.classList.remove('show'); setTimeout(()=>toast.remove(), 400); }, 3000);
+    }
+
+    // --- Delete All Data Modal ---
+    function showDeleteAllDataModal() {
+      if (document.getElementById('delete-modal')) return;
+      let modal = document.createElement('div');
+      modal.id = 'delete-modal';
+      modal.innerHTML = `
+        <div class='pos-modal-bg'></div>
+        <div class='pos-modal'>
+          <h3 style='margin-top:0;'>Delete ALL Data</h3>
+          <div style='margin-bottom:12px;'>
+            <b style='color:#e74c3c;'>This will permanently delete ALL data (products, sales, reports, customers, etc).<br>Type <span style="font-family:monospace;">DELETE</span> to confirm.</b>
+          </div>
+          <input id='delete-confirm-input' type='text' placeholder='Type DELETE to confirm' style='width:100%;padding:8px;font-size:1em;margin-bottom:10px;border-radius:5px;border:1px solid #ccc;'>
+          <div style='text-align:right;'>
+            <button class='pos-btn cancel' onclick='closeDeleteModal()'>Cancel</button>
+            <button class='pos-btn danger' id='delete-confirm-btn'>Delete All Data</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('delete-confirm-btn').onclick = function() {
+        const val = document.getElementById('delete-confirm-input').value;
+        if (val !== 'DELETE') {
+          showToast('Type DELETE to confirm', 'warning');
+          return;
+        }
+        this.disabled = true;
+        this.textContent = 'Deleting...';
+        fetch('delete_all_data.php', { method: 'POST' })
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              showToast('All data deleted! Please reload the page.', 'success');
+              closeDeleteModal();
+            } else {
+              showToast('Delete failed!', 'error');
+              this.disabled = false;
+              this.textContent = 'Delete All Data';
+            }
+          }).catch(()=>{
+            showToast('Delete failed!', 'error');
+            this.disabled = false;
+            this.textContent = 'Delete All Data';
+          });
+      };
+    }
+    function closeDeleteModal() {
+      const m = document.getElementById('delete-modal');
+      if (m) m.remove();
+    }
+    // --- Modal CSS ---
+    const modalStyle = document.createElement('style');
+    modalStyle.innerHTML = `
+    .pos-modal-bg { position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.18);z-index:9998; }
+    .pos-modal { position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 2px 18px #0003;padding:28px 24px 18px 24px;z-index:9999;min-width:320px;max-width:95vw;width:370px; }
+    .pos-btn.danger { background:#e74c3c; }
+    `;
+    document.head.appendChild(modalStyle);
+
+    // Patch renderSettingsPage to use new delete modal
+    const origRenderSettingsPage3 = renderSettingsPage;
+    renderSettingsPage = function() {
+      origRenderSettingsPage3();
+      loadStoreInfoToForm();
+      loadStockNotiDefaultToForm();
+      document.getElementById('store-info-form').onsubmit = saveStoreInfo;
+      document.getElementById('stock-noti-form').onsubmit = saveStockNotiDefault;
+      // Replace deleteAllData button
+      const btn = document.querySelector('.pos-card:last-child .pos-btn.cancel');
+      if (btn) btn.onclick = showDeleteAllDataModal;
+    }
+
+    // --- Stock Default Value = 1 ---
+    const origRenderCRUD4 = renderCRUD;
+    renderCRUD = function(afterRender) {
+      origRenderCRUD4(function() {
+        if (currentTab === 'products' && !editingId) {
+          const form = document.getElementById('crud-form');
+          if (form && form.querySelector('input[name="stock"]')) {
+            form.querySelector('input[name="stock"]').value = '1';
+          }
+        }
+        if (afterRender) afterRender();
+      });
+    }
+
+    // --- Add dark mode toggle ---
+    const darkModeStyle = document.createElement('style');
+    darkModeStyle.innerHTML = `
+    :root {
+      --pos-bg: #f6f7fb;
+      --pos-card: #fff;
+      --pos-text: #222;
+      --pos-primary: #2563eb;
+      --pos-primary-dark: #1e40af;
+      --pos-danger: #e74c3c;
+      --pos-success: #27ae60;
+      --pos-warning: #f39c12;
+      --pos-border: #d1d5db;
+      --pos-table-head: #f1f5f9;
+    }
+    body.dark {
+      --pos-bg: #181c24;
+      --pos-card: #232a36;
+      --pos-text: #f3f4f6;
+      --pos-primary: #3b82f6;
+      --pos-primary-dark: #1e40af;
+      --pos-danger: #e74c3c;
+      --pos-success: #27ae60;
+      --pos-warning: #f39c12;
+      --pos-border: #374151;
+      --pos-table-head: #232a36;
+    }
+    body, .pos-main { background: var(--pos-bg) !important; color: var(--pos-text) !important; }
+    .pos-card { background: var(--pos-card) !important; color: var(--pos-text) !important; }
+    .pos-sidebar { background: linear-gradient(180deg, var(--pos-primary) 0%, var(--pos-primary-dark) 100%) !important; }
+    .pos-btn { background: var(--pos-primary) !important; color: #fff !important; }
+    .pos-btn:hover, .pos-btn:focus { background: var(--pos-primary-dark) !important; }
+    .pos-btn.cancel { background: var(--pos-danger) !important; }
+    .pos-btn.cancel:hover, .pos-btn.cancel:focus { background: #c0392b !important; }
+    .pos-table-wrap thead { background: var(--pos-table-head) !important; }
+    table, th, td { color: var(--pos-text) !important; }
+    input, select { background: #f9fafb; color: var(--pos-text); border: 1px solid var(--pos-border); }
+    body.dark input, body.dark select { background: #232a36; color: #f3f4f6; border: 1px solid var(--pos-border); }
+    `;
+    document.head.appendChild(darkModeStyle);
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('pos_dark', document.body.classList.contains('dark') ? '1' : '0');
+    }
+    if (localStorage.getItem('pos_dark') === '1') document.body.classList.add('dark');
+    // Add dark mode toggle button to sidebar
+    setTimeout(()=>{
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && !document.getElementById('dark-toggle')) {
+        const btn = document.createElement('button');
+        btn.id = 'dark-toggle';
+        btn.innerHTML = `<span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="2" fill="none"/><path d="M10 6v4l3 3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></span>Dark Mode`;
+        btn.onclick = toggleDarkMode;
+        btn.style.marginTop = 'auto';
+        sidebar.appendChild(btn);
+      }
+    }, 500);
+    // --- Add SVG icons to action buttons ---
+    function addActionIcons() {
+      // Edit, Delete, Add, Save, Cancel
+      document.querySelectorAll('.actions button').forEach(btn => {
+        if (btn.textContent.includes('Edit')) btn.innerHTML = '<svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M4 13.5V16h2.5l7.37-7.37-2.5-2.5L4 13.5zm11.71-6.29a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.92 3.92 1.83-1.83z" fill="#fff"/></svg> Edit';
+        if (btn.textContent.includes('Delete')) btn.innerHTML = '<svg width="16" height="16" fill="none" viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="7" rx="2" fill="#fff" fill-opacity="0.7"/><rect x="7" y="5" width="6" height="2" rx="1" fill="#fff" fill-opacity="0.7"/></svg> Delete';
+        if (btn.textContent.includes('Cancel')) btn.innerHTML = '<svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M6 6l8 8M6 14L14 6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg> Cancel';
+        if (btn.textContent.includes('Save')) btn.innerHTML = '<svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M5 10l4 4 6-6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg> Save';
+        if (btn.textContent.includes('Add')) btn.innerHTML = '<svg width="18" height="18" fill="none" viewBox="0 0 20 20"><path d="M10 5v10m5-5H5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg> Add';
+      });
+    }
+    setInterval(addActionIcons, 1000);
+    // --- Modal focus trap, ESC close ---
+    document.addEventListener('keydown', function(e) {
+      const modal = document.querySelector('.pos-modal');
+      if (modal && e.key === 'Escape') closeDeleteModal && closeDeleteModal();
+      if (modal && e.key === 'Tab') {
+        const focusable = modal.querySelectorAll('button, [tabindex]:not([tabindex="-1"]), input, select');
+        if (!focusable.length) return;
+        let first = focusable[0], last = focusable[focusable.length-1];
+        if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+        else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+      }
+    });
+    // --- Table sticky header on mobile ---
+    const stickyTableStyle = document.createElement('style');
+    stickyTableStyle.innerHTML = `@media (max-width:700px){ .pos-table-wrap thead th { position: sticky; top: 0; background: var(--pos-table-head,#f1f5f9); z-index: 2; }}`;
+    document.head.appendChild(stickyTableStyle);
   </script>
 </body>
 </html>
