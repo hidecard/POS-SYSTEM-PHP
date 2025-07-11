@@ -794,7 +794,11 @@
           tr += `<td>${row.image_url ? `<img src='${row.image_url}' style='max-width:48px;max-height:48px;border-radius:6px;'/>` : ''}</td>`;
         }
         cfg.fields.forEach(f => {
-          if (f.type === "select" && preloadData[f.source]) {
+          if (f.name === 'supplier' && preloadData['supplier']) {
+            let found = preloadData['supplier'].find(opt => opt.id == row['supplier']);
+            let label = found ? found.name : '';
+            tr += `<td>${label}</td>`;
+          } else if (f.type === "select" && preloadData[f.source]) {
             let found = preloadData[f.source].find(opt => opt.id == row[f.name]);
             let label = found ? (found.categoryname || found.unit || found.name) : '';
             tr += `<td>${label}</td>`;
@@ -1547,7 +1551,11 @@
           tr += `<td>${row.image_url ? `<img src='${row.image_url}' style='max-width:48px;max-height:48px;border-radius:6px;'/>` : ''}</td>`;
         }
         cfg.fields.forEach(f => {
-          if (f.type === "select" && preloadData[f.source]) {
+          if (f.name === 'supplier' && preloadData['supplier']) {
+            let found = preloadData['supplier'].find(opt => opt.id == row['supplier']);
+            let label = found ? found.name : '';
+            tr += `<td>${label}</td>`;
+          } else if (f.type === "select" && preloadData[f.source]) {
             let found = preloadData[f.source].find(opt => opt.id == row[f.name]);
             let label = found ? (found.categoryname || found.unit || found.name) : '';
             tr += `<td>${label}</td>`;

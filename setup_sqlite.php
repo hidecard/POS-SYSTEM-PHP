@@ -80,5 +80,18 @@ CREATE TABLE IF NOT EXISTS purchase (
   note TEXT
 );
 ");
+
+// Add supplier column to products if not exists
+$cols = $pdo->query("PRAGMA table_info(products)")->fetchAll(PDO::FETCH_ASSOC);
+if (!in_array('supplier', array_column($cols, 'name'))) {
+    $pdo->exec("ALTER TABLE products ADD COLUMN supplier INTEGER");
+}
+
+// Add image column to products if not exists
+$cols = $pdo->query("PRAGMA table_info(products)")->fetchAll(PDO::FETCH_ASSOC);
+if (!in_array('image', array_column($cols, 'name'))) {
+    $pdo->exec("ALTER TABLE products ADD COLUMN image TEXT");
+}
+
 echo "SQLite database.db & tables created successfully!";
 ?>

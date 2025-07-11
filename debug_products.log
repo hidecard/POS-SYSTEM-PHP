@@ -1,0 +1,70 @@
+2025-07-11 19:09:57 Array
+(
+    [POST_JSON] => 
+)
+
+2025-07-11 19:10:14 Array
+(
+    [POST_JSON] => 
+)
+
+2025-07-11 19:10:38 Array
+(
+    [POST_JSON_NULL] => 
+)
+
+2025-07-11 19:12:25 Array
+(
+    [POST_FORM] => Array
+        (
+            [productname] => Boss
+            [categories] => 3
+            [barcode] => 001
+            [cost] => 10000
+            [price] => 20000
+            [stock] => 12
+            [unit] => 4
+            [supplier] => 2
+            [note] => 
+            [stock_noti] => 1
+        )
+
+)
+
+2025-07-11 19:12:25 Array
+(
+    [POST] => Array
+        (
+            [productname] => Boss
+            [categories] => 3
+            [barcode] => 001
+            [cost] => 10000
+            [price] => 20000
+            [stock] => 12
+            [unit] => 4
+            [supplier] => 2
+            [note] => 
+            [stock_noti] => 1
+        )
+
+    [error] => SQLSTATE[HY000]: General error: 1 table products has no column named image
+)
+
+2025-07-11 19:13:32 Array
+(
+    [POST_FORM] => Array
+        (
+            [productname] => Boss
+            [categories] => 3
+            [barcode] => 001
+            [cost] => 10000
+            [price] => 20000
+            [stock] => 12
+            [unit] => 4
+            [supplier] => 2
+            [note] => 
+            [stock_noti] => 1
+        )
+
+)
+
