@@ -5,6 +5,12 @@ $pdo = new PDO('sqlite:' . $dbfile);
 
 switch($_SERVER['REQUEST_METHOD']) {
   case 'GET':
+    if (isset($_GET['debts']) && $_GET['debts'] == 1) {
+      $sql = "SELECT c.id, c.name, SUM(d.amount) as total_debt FROM debts d LEFT JOIN customers c ON d.customer_id = c.id GROUP BY d.customer_id HAVING total_debt > 0 ORDER BY total_debt DESC";
+      $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+      echo json_encode($rows);
+      break;
+    }
     $search = $_GET['search'] ?? '';
     $page = max(1, intval($_GET['page'] ?? 1));
     $perPage = 8;

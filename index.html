@@ -448,18 +448,6 @@
     --pos-border: #d1d5db;
     --pos-table-head: #f1f5f9;
   }
-  body.dark {
-    --pos-bg: #181c24;
-    --pos-card: #232a36;
-    --pos-text: #f3f4f6;
-    --pos-primary: #3b82f6;
-    --pos-primary-dark: #1e40af;
-    --pos-danger: #e74c3c;
-    --pos-success: #27ae60;
-    --pos-warning: #f39c12;
-    --pos-border: #374151;
-    --pos-table-head: #232a36;
-  }
   body, .pos-main { background: var(--pos-bg) !important; color: var(--pos-text) !important; }
   .pos-card { background: var(--pos-card) !important; color: var(--pos-text) !important; }
   .pos-sidebar { background: linear-gradient(180deg, var(--pos-primary) 0%, var(--pos-primary-dark) 100%) !important; }
@@ -472,7 +460,6 @@
   input, select { background: #f9fafb; color: var(--pos-text); border: 1px solid var(--pos-border); }
   body.dark input, body.dark select { background: #232a36; color: #f3f4f6; border: 1px solid var(--pos-border); }
   </style>
-  // --- Add SVG icons to action buttons ---
   <style>
   .actions button {
     margin-right: 6px;
@@ -501,7 +488,6 @@
     fill: #fff;
   }
   </style>
-  // --- Modal focus trap, ESC close ---
   <style>
   .pos-modal {
     position: fixed;
@@ -532,11 +518,9 @@
     fill: #fff;
   }
   </style>
-  // --- Table sticky header on mobile ---
   <style>
   @media (max-width:700px){ .pos-table-wrap thead th { position: sticky; top: 0; background: var(--pos-table-head,#f1f5f9); z-index: 2; }}
   </style>
-  /* Input box UI polish */
   <style>
   input, select, textarea {
     padding: 10px 14px;
@@ -563,6 +547,86 @@
     background: #f1f1f1;
     color: #aaa;
     border: 1.5px solid #e5e7eb;
+  }
+  </style>
+  <style>
+  .qty-btn { background:#f1f5f9; border:1.5px solid #d1d5db; color:#2563eb; font-size:1.1em; border-radius:5px; width:32px; height:32px; cursor:pointer; margin:0 2px; transition:background 0.18s,border 0.18s; }
+  .qty-btn:active { background:#e0e7ff; }
+  .qty-btn:disabled { opacity:0.5; cursor:not-allowed; }
+  </style>
+  <style>
+  .img-upload-btn { display:inline-block; background:#f1f5f9; color:#2563eb; border:1.5px solid #d1d5db; border-radius:7px; padding:8px 18px; cursor:pointer; font-size:1.07em; transition:background 0.18s,border 0.18s; }
+  .img-upload-btn:hover { background:#e0e7ff; }
+  .img-upload-preview img { max-width:80px; max-height:80px; border-radius:8px; box-shadow:0 2px 8px #0001; display:block; margin-bottom:6px; }
+  .img-upload-remove { display:inline-block; color:#e74c3c; background:none; border:none; cursor:pointer; font-size:0.98em; margin-top:2px; }
+  </style>
+  <style>
+  .pos-table-wrap table {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px #0001;
+  }
+  .pos-table-wrap thead th {
+    background: #f1f5f9;
+    font-weight: 700;
+    color: #222;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  .pos-table-wrap tbody tr:nth-child(even) {
+    background: #f9fafb;
+  }
+  .pos-table-wrap tbody tr:nth-child(odd) {
+    background: #fff;
+  }
+  .pos-table-wrap tbody tr:hover {
+    background: #e0e7ff !important;
+  }
+  .actions {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 13px;
+    font-size: 1em;
+    border-radius: 6px;
+    border: none;
+    background: #f1f5f9;
+    color: #2563eb;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px #2563eb11;
+    font-weight: 500;
+  }
+  .actions button:hover, .actions button:focus {
+    background: #e0e7ff;
+    color: #1e40af;
+  }
+  .actions button svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+    margin-right: 2px;
+  }
+  .actions button.cancel {
+    background: #ffeaea;
+    color: #e74c3c;
+  }
+  .actions button.cancel:hover, .actions button.cancel:focus {
+    background: #fad2d2;
+    color: #c0392b;
+  }
+  .actions button.stockin {
+    background: #eaf6ff;
+    color: #2563eb;
+  }
+  .actions button.stockin:hover, .actions button.stockin:focus {
+    background: #d2e8fa;
+    color: #1e40af;
   }
   </style>
 </head>
@@ -812,12 +876,16 @@
       preloadSaleData().then(() => {
         fetchSalesHistory().then(() => {
           let productOptions = productsList.map(p => `<option value="${p.id}" data-price="${p.price}">${p.productname}</option>`).join('');
-          let customerOptions = customersList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+          let customerOptions = `<option value="guest">Guest</option>` + customersList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
           let staffOptions = staffList.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
           let cartRows = cart.map((item, i) => `
             <tr>
               <td>${productsList.find(p=>p.id==item.product_id)?.productname||''}</td>
-              <td><input type="number" min="1" value="${item.quantity}" style="width:60px" onchange="editCartQty(${i}, this.value)"></td>
+              <td style="min-width:110px;">
+                <button class="qty-btn" onclick="editCartQty(${i}, ${item.quantity-1})" ${item.quantity<=1?'disabled':''}>-</button>
+                <input type="number" min="1" value="${item.quantity}" style="width:48px;text-align:center;" onchange="editCartQty(${i}, this.value)">
+                <button class="qty-btn" onclick="editCartQty(${i}, ${item.quantity+1})">+</button>
+              </td>
               <td>${item.price}</td>
               <td>${item.subtotal}</td>
               <td><button class="pos-btn cancel" style="padding:4px 10px;font-size:0.95em" onclick="removeCartItem(${i})">Remove</button></td>
@@ -886,10 +954,10 @@
             <form id="checkout-form" onsubmit="event.preventDefault(); checkoutSale()">
               <div class="pos-form-row">
                 <label>Customer
-                  <select name="customer_id" required>
-                    <option value="">-- Select Customer --</option>
+                  <select name="customer_id" required onchange="onSaleCustomerChange(this.value)">
                     ${customerOptions}
                   </select>
+                  <button type="button" class="pos-btn" style="margin-top:6px;padding:4px 12px;font-size:0.97em" onclick="showAddCustomerModal()">Add New Customer</button>
                 </label>
                 <label>Staff
                   <select name="staff_id" required>
@@ -987,13 +1055,11 @@
             tr += `<td>${row[f.name] ?? ''}</td>`;
           }
         });
-        tr += `<td class="actions">`;
-        tr += `<button onclick="startEdit(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M4 13.5V16h2.5l7.37-7.37-2.5-2.5L4 13.5zm11.71-6.29a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.92 3.92 1.83-1.83z" fill="#fff"/></svg> Edit</button>`;
-        if (currentTab === 'products') {
-          tr += `<button onclick="showStockInHistory(${row.id})" title="View Stock In History"><svg width='16' height='16' fill='none' viewBox='0 0 20 20'><path d='M4 10h12M10 4v12' stroke='#2563eb' stroke-width='2'/></svg> Stock In</button>`;
-        }
-        tr += `<button onclick="deleteRow(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="7" rx="2" fill="#fff" fill-opacity="0.7"/><rect x="7" y="5" width="6" height="2" rx="1" fill="#fff" fill-opacity="0.7"/></svg> Delete</button>`;
-        tr += `</td></tr>`;
+        tr += `<td class="actions">
+          <button onclick="startEdit(${row.id})" title="Edit"><svg viewBox="0 0 20 20"><path d="M4 13.5V16h2.5l7.37-7.37-2.5-2.5L4 13.5zm11.71-6.29a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.92 3.92 1.83-1.83z"/></svg> Edit</button>
+          <button class="stockin" onclick="showStockInHistory(${row.id})" title="View Stock In History"><svg viewBox="0 0 20 20"><path d="M4 10h12M10 4v12" stroke="#2563eb" stroke-width="2"/></svg> Stock In</button>
+          <button class="cancel" onclick="deleteRow(${row.id})" title="Delete"><svg viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="7" rx="2"/><rect x="7" y="5" width="6" height="2" rx="1"/></svg> Delete</button>
+        </td>`;
         tbody.innerHTML += tr;
       });
     }
@@ -1340,6 +1406,23 @@
         </div>
       `;
       document.getElementById('report-form').onsubmit = showReport;
+      // In renderReportsPage(), after the existing report forms and results:
+      let debtHtml = `<div class='pos-card'><h3>ရရန်ရှိသူစာရင်း (Debtors List)</h3><div id='debtors-result'>Loading...</div></div>`;
+      document.getElementById('crud-app').innerHTML += debtHtml;
+      fetch('api/customers.php?debts=1')
+        .then(res=>res.json())
+        .then(list=>{
+          let html = '';
+          if (list && list.length) {
+            html += `<table style='width:100%;font-size:1em;margin-bottom:8px;border-collapse:collapse;'>
+              <thead><tr><th>Customer</th><th>Total Debt</th></tr></thead><tbody>`;
+            html += list.map(d=>`<tr><td>${d.name||''}</td><td>${Number(d.total_debt).toFixed(2)}</td></tr>`).join('');
+            html += '</tbody></table>';
+          } else {
+            html = '<div style="color:#888;">No debtors found.</div>';
+          }
+          document.getElementById('debtors-result').innerHTML = html;
+        });
     }
     function showReport(e) {
       e.preventDefault();
@@ -1744,13 +1827,11 @@
             tr += `<td>${row[f.name] ?? ''}</td>`;
           }
         });
-        tr += `<td class="actions">`;
-        tr += `<button onclick="startEdit(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M4 13.5V16h2.5l7.37-7.37-2.5-2.5L4 13.5zm11.71-6.29a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.92 3.92 1.83-1.83z" fill="#fff"/></svg> Edit</button>`;
-        if (currentTab === 'products') {
-          tr += `<button onclick="showStockInHistory(${row.id})" title="View Stock In History"><svg width='16' height='16' fill='none' viewBox='0 0 20 20'><path d='M4 10h12M10 4v12' stroke='#2563eb' stroke-width='2'/></svg> Stock In</button>`;
-        }
-        tr += `<button onclick="deleteRow(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="7" rx="2" fill="#fff" fill-opacity="0.7"/><rect x="7" y="5" width="6" height="2" rx="1" fill="#fff" fill-opacity="0.7"/></svg> Delete</button>`;
-        tr += `</td></tr>`;
+        tr += `<td class="actions">
+          <button onclick="startEdit(${row.id})" title="Edit"><svg viewBox="0 0 20 20"><path d="M4 13.5V16h2.5l7.37-7.37-2.5-2.5L4 13.5zm11.71-6.29a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.92 3.92 1.83-1.83z"/></svg> Edit</button>
+          <button class="stockin" onclick="showStockInHistory(${row.id})" title="View Stock In History"><svg viewBox="0 0 20 20"><path d="M4 10h12M10 4v12" stroke="#2563eb" stroke-width="2"/></svg> Stock In</button>
+          <button class="cancel" onclick="deleteRow(${row.id})" title="Delete"><svg viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="7" rx="2"/><rect x="7" y="5" width="6" height="2" rx="1"/></svg> Delete</button>
+        </td>`;
         tbody.innerHTML += tr;
       });
     };
@@ -1811,6 +1892,16 @@
           .then(res=>res.json())
           .then(data=>{
             let html = `<div style='font-size:1.1em;margin-bottom:10px;'><b>Total Purchase:</b> ${Number(data.total).toFixed(2)}</div>`;
+            // Product-wise summary
+            if (data.byProduct && data.byProduct.length) {
+              html += `<table style='width:100%;font-size:1em;margin-bottom:8px;border-collapse:collapse;'>
+                <thead><tr><th>Product</th><th>Qty</th><th>Sales</th><th>Profit</th></tr></thead>
+                <tbody>
+                  ${data.byProduct.map(p=>`<tr><td>${p.name||''}</td><td>${p.qty}</td><td>${Number(p.total).toFixed(2)}</td><td>${Number(p.profit).toFixed(2)}</td></tr>`).join('')}
+                </tbody>
+              </table>`;
+            }
+            // ...existing purchase list rendering...
             if (data.purchases && data.purchases.length) {
               html += `<table style='width:100%;font-size:1em;margin-bottom:8px;border-collapse:collapse;'><thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Cost</th><th>Note</th></tr></thead><tbody>`;
               html += data.purchases.map(p=>`<tr><td>${p.date}</td><td>${p.productname||''}</td><td>${p.qty}</td><td>${Number(p.cost).toFixed(2)}</td><td>${p.note||''}</td></tr>`).join('');
@@ -1973,13 +2064,13 @@
       if (sidebar && !document.getElementById('dark-toggle')) {
         const btn = document.createElement('button');
         btn.id = 'dark-toggle';
-        btn.innerHTML = `<span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="2" fill="none"/><path d="M10 6v4l3 3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></span>Dark Mode`;
+        // btn.innerHTML = `<span class="icon"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="2" fill="none"/><path d="M10 6v4l3 3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></span>Dark Mode`;
         btn.onclick = toggleDarkMode;
         btn.style.marginTop = 'auto';
         sidebar.appendChild(btn);
       }
     }, 500);
-    // --- Add SVG icons to action buttons ---
+    
     function addActionIcons() {
       // Edit, Delete, Add, Save, Cancel
       document.querySelectorAll('.actions button').forEach(btn => {
@@ -1991,7 +2082,6 @@
       });
     }
     setInterval(addActionIcons, 1000);
-    // --- Modal focus trap, ESC close ---
     document.addEventListener('keydown', function(e) {
       const modal = document.querySelector('.pos-modal');
       if (modal && e.key === 'Escape') closeDeleteModal && closeDeleteModal();
@@ -2007,6 +2097,132 @@
     const stickyTableStyle = document.createElement('style');
     stickyTableStyle.innerHTML = `@media (max-width:700px){ .pos-table-wrap thead th { position: sticky; top: 0; background: var(--pos-table-head,#f1f5f9); z-index: 2; }}`;
     document.head.appendChild(stickyTableStyle);
+    // --- Cart qty UI polish ---
+    const qtyBtnStyle = document.createElement('style');
+    qtyBtnStyle.innerHTML = `.qty-btn { background:#f1f5f9; border:1.5px solid #d1d5db; color:#2563eb; font-size:1.1em; border-radius:5px; width:32px; height:32px; cursor:pointer; margin:0 2px; transition:background 0.18s,border 0.18s; }
+    .qty-btn:active { background:#e0e7ff; }
+    .qty-btn:disabled { opacity:0.5; cursor:not-allowed; }`;
+    document.head.appendChild(qtyBtnStyle);
+    const origRenderCRUD5 = renderCRUD;
+    renderCRUD = function(afterRender) {
+      origRenderCRUD5(function() {
+        if (currentTab === 'products') {
+          const form = document.getElementById('crud-form');
+          if (form && !form.querySelector('.img-upload-wrap')) {
+            // Remove old input if exists
+            const oldImgInput = form.querySelector('input[name="image"]');
+            if (oldImgInput) oldImgInput.style.display = 'none';
+            // Add new UI
+            const imgWrap = document.createElement('div');
+            imgWrap.className = 'img-upload-wrap';
+            imgWrap.style.margin = '10px 0 18px 0';
+            imgWrap.innerHTML = `
+              <label class="img-upload-btn">
+                <input type="file" name="image" accept="image/*" style="display:none">
+                <span class="img-upload-label">${editingId ? 'Change' : 'Upload'} Image</span>
+              </label>
+              <div class="img-upload-preview" style="margin-top:8px;"></div>
+            `;
+            form.querySelector('.pos-form-row').appendChild(imgWrap);
+            // CSS
+            if (!document.getElementById('img-upload-style')) {
+              const style = document.createElement('style');
+              style.id = 'img-upload-style';
+              style.innerHTML = `.img-upload-btn { display:inline-block; background:#f1f5f9; color:#2563eb; border:1.5px solid #d1d5db; border-radius:7px; padding:8px 18px; cursor:pointer; font-size:1.07em; transition:background 0.18s,border 0.18s; }
+    .img-upload-btn:hover { background:#e0e7ff; }
+    .img-upload-preview img { max-width:80px; max-height:80px; border-radius:8px; box-shadow:0 2px 8px #0001; display:block; margin-bottom:6px; }
+    .img-upload-remove { display:inline-block; color:#e74c3c; background:none; border:none; cursor:pointer; font-size:0.98em; margin-top:2px; }
+    `;
+              document.head.appendChild(style);
+            }
+            // JS
+            const input = imgWrap.querySelector('input[type="file"]');
+            const preview = imgWrap.querySelector('.img-upload-preview');
+            input.onchange = function(e) {
+              if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                  preview.innerHTML = `<img src="${ev.target.result}"><button type="button" class="img-upload-remove">Remove</button>`;
+                  preview.querySelector('.img-upload-remove').onclick = function() {
+                    input.value = '';
+                    preview.innerHTML = '';
+                  };
+                };
+                reader.readAsDataURL(input.files[0]);
+              }
+            };
+            if (editingId) {
+              const row = dataCache.find(r => r.id == editingId);
+              if (row && row.image_url) {
+                preview.innerHTML = `<img src="${row.image_url}"><button type="button" class="img-upload-remove">Remove</button>`;
+                preview.querySelector('.img-upload-remove').onclick = function() {
+                  input.value = '';
+                  preview.innerHTML = '';
+                };
+              }
+            }
+          }
+        }
+        if (afterRender) afterRender();
+      });
+    }
+
+    function onSaleCustomerChange(val) {
+      saleForm.customer_id = val;
+    }
+
+    function showAddCustomerModal() {
+      if (document.getElementById('add-customer-modal')) return;
+      let modal = document.createElement('div');
+      modal.id = 'add-customer-modal';
+      modal.innerHTML = `
+        <div class='pos-modal-bg'></div>
+        <div class='pos-modal'>
+          <h3 style='margin-top:0;'>Add New Customer</h3>
+          <form id='add-customer-form'>
+            <label>Name<input name='name' required></label>
+            <label>Phone<input name='phonenumber'></label>
+            <label>Address<input name='adress'></label>
+            <label>Note<input name='note'></label>
+            <div style='text-align:right;margin-top:12px;'>
+              <button type='button' class='pos-btn cancel' onclick='closeAddCustomerModal()'>Cancel</button>
+              <button type='submit' class='pos-btn'>Add</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('add-customer-form').onsubmit = function(e) {
+        e.preventDefault();
+        const fd = new FormData(this);
+        fetch('api/customers.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.fromEntries(fd.entries()))
+        })
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) {
+            closeAddCustomerModal();
+            // Refresh customersList and select the new customer
+            fetch('api/customers.php').then(r=>r.json()).then(list=>{
+              customersList = list;
+              renderSaleUI();
+              setTimeout(()=>{
+                const sel = document.querySelector('select[name=customer_id]');
+                if (sel) sel.value = res.id;
+              }, 100);
+            });
+          } else {
+            alert('Add failed');
+          }
+        });
+      };
+    }
+    function closeAddCustomerModal() {
+      const m = document.getElementById('add-customer-modal');
+      if (m) m.remove();
+    }
   </script>
 </body>
 </html>

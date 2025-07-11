@@ -18,14 +18,14 @@ switch($_SERVER['REQUEST_METHOD']) {
       $sales = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
       $total = 0; $profit = 0; $byProduct = [];
       foreach ($sales as $sale) {
-        $stmt2 = $pdo->prepare("SELECT si.*, p.cost FROM sales_items si LEFT JOIN products p ON si.product_id = p.id WHERE sale_id=?");
+        $stmt2 = $pdo->prepare("SELECT si.*, p.cost, p.productname FROM sales_items si LEFT JOIN products p ON si.product_id = p.id WHERE sale_id=?");
         $stmt2->execute([$sale['id']]);
         $items = $stmt2->fetchAll(PDO::FETCH_ASSOC);
         foreach ($items as $item) {
           $total += $item['subtotal'];
           $itemProfit = ($item['price'] - ($item['cost'] ?? 0)) * $item['quantity'];
           $profit += $itemProfit;
-          if (!isset($byProduct[$item['product_id']])) $byProduct[$item['product_id']] = ['qty'=>0,'total'=>0,'profit'=>0];
+          if (!isset($byProduct[$item['product_id']])) $byProduct[$item['product_id']] = ['qty'=>0,'total'=>0,'profit'=>0,'name'=>''];
           $byProduct[$item['product_id']]['qty'] += $item['quantity'];
           $byProduct[$item['product_id']]['total'] += $item['subtotal'];
           $byProduct[$item['product_id']]['profit'] += $itemProfit;
@@ -70,6 +70,15 @@ switch($_SERVER['REQUEST_METHOD']) {
       ]);
       // Optionally: update product stock
       $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id=?")->execute([$item['quantity'], $item['product_id']]);
+    }
+    // If payment < total and not guest, insert debt
+    $customer_id = $data['customer_id'];
+    $total = floatval($data['total']);
+    $payment = floatval($data['payment'] ?? 0);
+    if ($customer_id !== 'guest' && $payment < $total) {
+      $debt = $total - $payment;
+      $stmt3 = $pdo->prepare("INSERT INTO debts (customer_id, sale_id, amount, note, date) VALUES (?, ?, ?, ?, ?)");
+      $stmt3->execute([$customer_id, $sale_id, $debt, $data['note'] ?? '', $data['sale_date'] ?? date('Y-m-d H:i:s')]);
     }
     $pdo->commit();
     echo json_encode(['success'=>true, 'id'=>$sale_id]);

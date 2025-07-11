@@ -79,6 +79,14 @@ CREATE TABLE IF NOT EXISTS purchase (
   date TEXT,
   note TEXT
 );
+CREATE TABLE IF NOT EXISTS debts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER,
+  sale_id INTEGER,
+  amount REAL,
+  note TEXT,
+  date TEXT
+);
 ");
 
 // Add supplier column to products if not exists
