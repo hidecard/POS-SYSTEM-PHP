@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS products (
   stock INTEGER,
   unit TEXT,
   note TEXT,
-  stock_noti INTEGER DEFAULT 5
+  stock_noti INTEGER DEFAULT 5,
+  image TEXT
 );
 CREATE TABLE IF NOT EXISTS customers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,35 +39,7 @@ CREATE TABLE IF NOT EXISTS supplier (
   phonenumber TEXT,
   note TEXT
 );
-
-
-CREATE TABLE IF NOT EXISTS customers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    adress TEXT,
-    category TEXT,
-    note TEXT,
-    phonenumber TEXT
-  );
-  
-  CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    categoryname TEXT NOT NULL
-  );
-  
-  CREATE TABLE IF NOT EXISTS unit (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    unit TEXT NOT NULL
-  );
-  
-  CREATE TABLE IF NOT EXISTS supplier (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    adress TEXT,
-    phonenumber TEXT,
-    note TEXT
-  );
-  CREATE TABLE IF NOT EXISTS sales (
+CREATE TABLE IF NOT EXISTS sales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   sale_date TEXT,
   customer_id INTEGER,
@@ -74,7 +47,6 @@ CREATE TABLE IF NOT EXISTS customers (
   total REAL,
   note TEXT
 );
-
 CREATE TABLE IF NOT EXISTS staff (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -83,7 +55,6 @@ CREATE TABLE IF NOT EXISTS staff (
   email TEXT,
   note TEXT
 );
-
 CREATE TABLE IF NOT EXISTS sales_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   sale_id INTEGER,
@@ -92,13 +63,21 @@ CREATE TABLE IF NOT EXISTS sales_items (
   price REAL,
   subtotal REAL
 );
-
 CREATE TABLE IF NOT EXISTS stock_in_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   product_id INTEGER,
   qty INTEGER,
   note TEXT,
   created_at TEXT
+);
+CREATE TABLE IF NOT EXISTS purchase (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  product_id INTEGER,
+  supplier_id INTEGER,
+  qty INTEGER,
+  cost REAL,
+  date TEXT,
+  note TEXT
 );
 ");
 echo "SQLite database.db & tables created successfully!";

@@ -12,6 +12,7 @@ try {
   $pdo->exec('DELETE FROM unit');
   $pdo->exec('DELETE FROM supplier');
   $pdo->exec('DELETE FROM staff');
+  $pdo->exec('DELETE FROM purchase');
   $pdo->commit();
   echo json_encode(['success'=>true]);
 } catch (Exception $e) {

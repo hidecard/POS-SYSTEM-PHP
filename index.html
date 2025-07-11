@@ -789,6 +789,10 @@
           isLowStock = stock < threshold;
         }
         let tr = `<tr${isEdit ? ' class="edit-row"' : ''}${isLowStock ? ' style="background:#fff0f0;"' : ''}>`;
+        if (currentTab === 'products') {
+          // Show image as first column
+          tr += `<td>${row.image_url ? `<img src='${row.image_url}' style='max-width:48px;max-height:48px;border-radius:6px;'/>` : ''}</td>`;
+        }
         cfg.fields.forEach(f => {
           if (f.type === "select" && preloadData[f.source]) {
             let found = preloadData[f.source].find(opt => opt.id == row[f.name]);
@@ -1300,9 +1304,31 @@
         if (currentTab === 'products' && !editingId) {
           // Only for add, not edit
           const form = document.getElementById('crud-form');
-          if (form && form.stock_noti) {
-            const def = localStorage.getItem('stock_noti_default') || '5';
-            form.stock_noti.value = def;
+          if (form && form.querySelector('input[name="image"]')) {
+            const imgInput = form.querySelector('input[name="image"]');
+            if (imgInput.files.length > 0) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                const imgPrev = document.createElement('img');
+                imgPrev.src = e.target.result;
+                imgPrev.style.maxWidth = '60px';
+                imgPrev.style.display = 'block';
+                imgPrev.style.marginTop = '5px';
+                form.querySelector('.pos-form-row').appendChild(imgPrev);
+              };
+              reader.readAsDataURL(imgInput.files[0]);
+            }
+          }
+          if (form && !form.querySelector('input[name="stock_noti"]')) {
+            const stockNotiLabel = document.createElement('label');
+            stockNotiLabel.textContent = 'Stock Noti Threshold';
+            const stockNotiInput = document.createElement('input');
+            stockNotiInput.type = 'number';
+            stockNotiInput.name = 'stock_noti';
+            stockNotiInput.min = '0';
+            stockNotiInput.value = localStorage.getItem('stock_noti_default') || '5';
+            stockNotiLabel.appendChild(stockNotiInput);
+            form.querySelector('.pos-form-row').appendChild(stockNotiLabel);
           }
         }
         if (afterRender) afterRender();
@@ -1422,6 +1448,193 @@
       const m = document.getElementById('stock-in-modal');
       if (m) m.remove();
     }
+
+    // --- PATCH renderCRUD for product image upload ---
+    const origRenderCRUD2 = renderCRUD;
+    renderCRUD = function(afterRender) {
+      origRenderCRUD2(function() {
+        if (currentTab === 'products') {
+          // Add image input to form
+          const form = document.getElementById('crud-form');
+          if (form && !form.querySelector('input[name="image"]')) {
+            const imgLabel = document.createElement('label');
+            imgLabel.textContent = 'Image';
+            const imgInput = document.createElement('input');
+            imgInput.type = 'file';
+            imgInput.name = 'image';
+            imgInput.accept = 'image/*';
+            imgInput.style.marginTop = '5px';
+            imgLabel.appendChild(imgInput);
+            form.querySelector('.pos-form-row').appendChild(imgLabel);
+            // Preview for edit
+            if (editingId) {
+              const row = dataCache.find(r => r.id == editingId);
+              if (row && row.image_url) {
+                const imgPrev = document.createElement('img');
+                imgPrev.src = row.image_url;
+                imgPrev.style.maxWidth = '60px';
+                imgPrev.style.display = 'block';
+                imgPrev.style.marginTop = '5px';
+                imgLabel.appendChild(imgPrev);
+              }
+            }
+          }
+          // Patch submitAdd/submitEdit for image
+          form.onsubmit = function(e) {
+            e.preventDefault();
+            const isEdit = !!editingId;
+            const fd = new FormData(form);
+            tables.products.fields.forEach(f => {
+              if (!fd.has(f.name)) fd.append(f.name, form[f.name]?.value || '');
+            });
+            if (isEdit) {
+              fetch(tables.products.endpoint + '?id=' + editingId, {
+                method: 'PUT',
+                body: fd
+              })
+              .then(res => res.json())
+              .then(res => {
+                if (res.success) {
+                  editingId = null;
+                  renderCRUD();
+                } else {
+                  showError('Update failed');
+                }
+              });
+            } else {
+              fetch(tables.products.endpoint, {
+                method: 'POST',
+                body: fd
+              })
+              .then(res => res.json())
+              .then(res => {
+                if (res.success) {
+                  renderCRUD();
+                } else {
+                  showError('Add failed');
+                }
+              });
+            }
+          };
+        }
+        if (afterRender) afterRender();
+      });
+    };
+    // --- PATCH renderTableRows to show product image ---
+    const origRenderTableRows = renderTableRows;
+    renderTableRows = function() {
+      const cfg = tables[currentTab];
+      const search = (document.getElementById('search-bar')?.value || '').toLowerCase();
+      const tbody = document.getElementById('crud-tbody');
+      tbody.innerHTML = '';
+      let filtered = dataCache;
+      if (search) {
+        filtered = dataCache.filter(row =>
+          cfg.fields.some(f => (row[f.name] + '').toLowerCase().includes(search))
+        );
+      }
+      filtered.forEach(row => {
+        const isEdit = editingId == row.id;
+        let isLowStock = false;
+        if (currentTab === 'products') {
+          const stock = Number(row['stock'] ?? 0);
+          const threshold = Number(row['stock_noti'] ?? 5);
+          isLowStock = stock < threshold;
+        }
+        let tr = `<tr${isEdit ? ' class="edit-row"' : ''}${isLowStock ? ' style="background:#fff0f0;"' : ''}>`;
+        if (currentTab === 'products') {
+          // Show image as first column
+          tr += `<td>${row.image_url ? `<img src='${row.image_url}' style='max-width:48px;max-height:48px;border-radius:6px;'/>` : ''}</td>`;
+        }
+        cfg.fields.forEach(f => {
+          if (f.type === "select" && preloadData[f.source]) {
+            let found = preloadData[f.source].find(opt => opt.id == row[f.name]);
+            let label = found ? (found.categoryname || found.unit || found.name) : '';
+            tr += `<td>${label}</td>`;
+          } else if (f.name === 'stock' && isLowStock) {
+            tr += `<td>${row[f.name] ?? ''} <span title='Low Stock' style='color:#e74c3c;font-weight:bold;'>&#9888;</span></td>`;
+          } else {
+            tr += `<td>${row[f.name] ?? ''}</td>`;
+          }
+        });
+        tr += `<td class="actions">`;
+        tr += `<button onclick="startEdit(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M4 13.5V16h2.5l7.37-7.37-2.5-2.5L4 13.5zm11.71-6.29a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.92 3.92 1.83-1.83z" fill="#fff"/></svg> Edit</button>`;
+        if (currentTab === 'products') {
+          tr += `<button onclick="showStockInHistory(${row.id})" title="View Stock In History"><svg width='16' height='16' fill='none' viewBox='0 0 20 20'><path d='M4 10h12M10 4v12' stroke='#2563eb' stroke-width='2'/></svg> Stock In</button>`;
+        }
+        tr += `<button onclick="deleteRow(${row.id})"><svg width="16" height="16" fill="none" viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="7" rx="2" fill="#fff" fill-opacity="0.7"/><rect x="7" y="5" width="6" height="2" rx="1" fill="#fff" fill-opacity="0.7"/></svg> Delete</button>`;
+        tr += `</td></tr>`;
+        tbody.innerHTML += tr;
+      });
+    };
+    // --- PATCH renderCRUD to add image column header for products ---
+    const origRenderCRUD3 = renderCRUD;
+    renderCRUD = function(afterRender) {
+      origRenderCRUD3(function() {
+        if (currentTab === 'products') {
+          // Add image column header if not present
+          const ths = document.querySelectorAll('#crud-app th');
+          if (ths.length && ths[0].textContent !== 'Image') {
+            const tr = ths[0].parentElement;
+            const imgTh = document.createElement('th');
+            imgTh.textContent = 'Image';
+            tr.insertBefore(imgTh, tr.firstChild);
+          }
+        }
+        if (afterRender) afterRender();
+      });
+    };
+    // --- Supplier Purchase Report ---
+    const origRenderReportsPage = renderReportsPage;
+    renderReportsPage = function() {
+      origRenderReportsPage();
+      // Add Supplier Purchase Report UI
+      const reportsDiv = document.getElementById('crud-app');
+      const card = document.createElement('div');
+      card.className = 'pos-card';
+      card.innerHTML = `<h3>Supplier Purchase Report</h3>
+        <form id='supplier-report-form'>
+          <div class='pos-form-row'>
+            <label>Supplier
+              <select name='supplier_id' id='supplier-select'><option value=''>-- Select Supplier --</option></select>
+            </label>
+          </div>
+          <div class='pos-form-actions'><button type='submit' class='pos-btn'>Show Report</button></div>
+        </form>
+        <div id='supplier-report-result'></div>`;
+      reportsDiv.appendChild(card);
+      // Load suppliers
+      fetch(tables.supplier.endpoint)
+        .then(res=>res.json())
+        .then(list=>{
+          const sel = document.getElementById('supplier-select');
+          list.forEach(sup=>{
+            const opt = document.createElement('option');
+            opt.value = sup.id;
+            opt.textContent = sup.name;
+            sel.appendChild(opt);
+          });
+        });
+      document.getElementById('supplier-report-form').onsubmit = function(e) {
+        e.preventDefault();
+        const supplier_id = document.getElementById('supplier-select').value;
+        if (!supplier_id) return;
+        document.getElementById('supplier-report-result').innerHTML = 'Loading...';
+        fetch('api/purchase.php?report=1&supplier_id='+supplier_id)
+          .then(res=>res.json())
+          .then(data=>{
+            let html = `<div style='font-size:1.1em;margin-bottom:10px;'><b>Total Purchase:</b> ${Number(data.total).toFixed(2)}</div>`;
+            if (data.purchases && data.purchases.length) {
+              html += `<table style='width:100%;font-size:1em;margin-bottom:8px;border-collapse:collapse;'><thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Cost</th><th>Note</th></tr></thead><tbody>`;
+              html += data.purchases.map(p=>`<tr><td>${p.date}</td><td>${p.productname||''}</td><td>${p.qty}</td><td>${Number(p.cost).toFixed(2)}</td><td>${p.note||''}</td></tr>`).join('');
+              html += '</tbody></table>';
+            } else {
+              html += '<div style="color:#888;">No purchases found for this supplier.</div>';
+            }
+            document.getElementById('supplier-report-result').innerHTML = html;
+          });
+      };
+    };
 
     // Initial render
     renderCRUD();
